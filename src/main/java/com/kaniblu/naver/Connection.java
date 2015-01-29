@@ -291,11 +291,11 @@ public class Connection
     private Map<String, String> generateDefaultRequestHeader()
     {
         HashMap<String, String> header = new HashMap<String, String>();
-        header.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        header.put("Accept", "*/*");
         header.put("Accept-Language", "en-GB,en;q=0.8,en-US;q=0.6,ko;q=0.4,pt;q=0.2,zh-CN;q=0.2,zh;q=0.2,zh-TW;q=0.2,ja;q=0.2");
         header.put("Cookie", generateCookieHeader());
         header.put("User-Agent", "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.99 Safari/537.36");
-
+        header.put("Connection", "keep-alive");
         return header;
     }
 

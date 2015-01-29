@@ -63,8 +63,17 @@ public class HttpClient
     {
         StringEntity formEntity = null;
 
-        if (formData != null)
+        if (formData != null) {
             formEntity = constructFormEntity(formData);
+
+            if (headers == null)
+                headers = new HashMap<String, String>();
+
+            if (headers.containsKey("Content-Type"))
+                headers.remove("Content-Type");
+
+            headers.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        }
 
         return _request(method, url, headers, formEntity);
     }

@@ -118,6 +118,13 @@ public class NewsComment
         return commentList;
     }
 
+    public static List<NewsComment> getCurrentUserComments(Connection connection, int page, int pageSize, NewsComment.SortType sortType) throws InternalException, ServerException
+    {
+        List<NewsComment> comments = new ArrayList<NewsComment>();
+
+        return comments;
+    }
+
     private void loadFromJSON(JSONObject jsonObject) throws ServerException
     {
         if (!jsonObject.has("lRegDate"))

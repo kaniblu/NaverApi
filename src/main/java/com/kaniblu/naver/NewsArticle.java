@@ -123,7 +123,7 @@ public class NewsArticle
         header.put("charset", "utf-8");
         header.put("Host", "comment.news.naver.com");
         header.put("Origin", "http://comment.news.naver.com");
-        header.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        header.put("Referer", "http://comment.news.naver.com/comment/main.nhn?nsc=news.reply&gno=news001,000723323k8&serviceId=news");
 
         HttpForm formContent = new HttpForm();
         formContent.put("content", content);
@@ -134,7 +134,7 @@ public class NewsArticle
         JSONObject object = null;
 
         try {
-            object = mConnection.requestJsonPost("http://comment.news.naver.com/api/comment/write.json", header, formContent);
+            object = mConnection.requestJsonPost("http://m.news.naver.com/api/comment/write.json", header, formContent);
         } catch (JSONErrorException e) {
             logger.log(Level.SEVERE, "Unexpected json error.");
             throw new ServerException();
