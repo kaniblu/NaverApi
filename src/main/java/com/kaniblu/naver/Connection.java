@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
 
 public class Connection
 {
-    private static final Logger logger = Logger.getLogger(Connection.class.getCanonicalName());
+    protected static final Logger logger = Logger.getLogger(Connection.class.getCanonicalName());
 
-    private static class Cookie
+    protected static class Cookie
     {
         public static final DateTimeFormatter EXPIRE_FORMAT = DateTimeFormat.forPattern("EEE, dd-MM-yyyy HH:mm:ss zzz");
 
@@ -47,9 +47,9 @@ public class Connection
         }
     }
 
-    private static class CookieCollection
+    protected static class CookieCollection
     {
-        private HashMap<String, Cookie> mData;
+        protected HashMap<String, Cookie> mData;
 
         public CookieCollection()
         {
@@ -119,7 +119,7 @@ public class Connection
                 {
                     return new Iterator<Cookie>()
                     {
-                        private Iterator<String> mKeySet = mData.keySet().iterator();
+                        protected Iterator<String> mKeySet = mData.keySet().iterator();
 
                         @Override
                         public boolean hasNext()
@@ -191,19 +191,27 @@ public class Connection
             };
         }
     }
-    private static final Pattern ERR_PATTERN = Pattern.compile("<div class=\"error\" id=\"err_common\">.*?<p>([^<]*?)</p>.*?</div>", Pattern.DOTALL);
+    protected static final Pattern ERR_PATTERN = Pattern.compile("<div class=\"error\" id=\"err_common\">.*?<p>([^<]*?)</p>.*?</div>", Pattern.DOTALL);
 
-    private String mUsername;
-    private String mPassword;
-    private KeySet mKeySet;
-    private CookieCollection mCookies;
+    protected String mUsername;
+    protected String mPassword;
+    protected KeySet mKeySet;
+    protected CookieCollection mCookies = new CookieCollection();
 
-    private Connection()
+    public Connection() throws InternalException, ServerException
     {
-        mCookies = new CookieCollection();
+        requestCookies();
     }
 
-    private static class KeySet
+    public Connection(String username, String password) throws InternalException, ServerException
+    {
+        this();
+
+        mUsername = username;
+        mPassword = password;
+    }
+
+    protected static class KeySet
     {
         public String sessionKey;
         public String keyName;
@@ -217,7 +225,7 @@ public class Connection
         }
     }
 
-    private void requestKeys() throws InternalException
+    protected void requestKeys() throws InternalException
     {
         HttpResult result = HttpClient.request(HttpClient.Method.POST, "https://nid.naver.com/login/ext/keys.nhn");
 
@@ -242,12 +250,12 @@ public class Connection
         mKeySet = keySet;
     }
 
-    private static String getCharCode(String s)
+    protected static String getCharCode(String s)
     {
         return String.valueOf((char)s.length());
     }
 
-    private String getEncryptedCredentials()
+    protected String getEncryptedCredentials()
     {
         RSA rsa = new RSA();
         String encrypt;
@@ -257,7 +265,7 @@ public class Connection
         return encrypt;
     }
 
-    private Map<String, String> generateLoginRequestForm()
+    protected Map<String, String> generateLoginRequestForm()
     {
         Map<String, String> formContent = new HashMap<String, String>();
         String encrypted = getEncryptedCredentials();
@@ -277,7 +285,7 @@ public class Connection
         return formContent;
     }
 
-    private String generateCookieHeader()
+    protected String generateCookieHeader()
     {
         String s = "";
 
@@ -288,7 +296,7 @@ public class Connection
         return s.length() > 0 ? s.substring(0, s.length() - 2) : s;
     }
 
-    private Map<String, String> generateDefaultRequestHeader()
+    protected Map<String, String> generateDefaultRequestHeader()
     {
         HashMap<String, String> header = new HashMap<String, String>();
         header.put("Accept", "*/*");
@@ -299,7 +307,7 @@ public class Connection
         return header;
     }
 
-    private Map<String, String> generateLoginRequestHeader()
+    protected Map<String, String> generateLoginRequestHeader()
     {
         Map<String, String> header = new HashMap<String, String>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
@@ -308,7 +316,7 @@ public class Connection
         return header;
     }
 
-    private void requestCookies() throws InternalException, ServerException
+    protected void requestCookies() throws InternalException, ServerException
     {
         HttpResult result = requestGet("https://nid.naver.com/nidlogin.login", null, null);
 
@@ -328,7 +336,7 @@ public class Connection
         return request(HttpClient.Method.POST, url, header, content);
     }
 
-    private void storeCookie(HttpResult result)
+    protected void storeCookie(HttpResult result)
     {
         if (result != null && result.headers.containsKey("set-cookie")) {
             for (String headerValue : result.headers.get("set-cookie")) {
@@ -375,7 +383,7 @@ public class Connection
         }
     }
 
-    private HttpResult request(HttpClient.Method method, String url, Map<String, String> header, Map<String, String> content) throws ServerException
+    protected HttpResult request(HttpClient.Method method, String url, Map<String, String> header, Map<String, String> content) throws ServerException
     {
         Map<String, String> basicHeader = generateDefaultRequestHeader();
 
@@ -423,7 +431,7 @@ public class Connection
         return requestJson(HttpClient.Method.GET, url, header, null);
     }
 
-    private JSONObject requestJson(HttpClient.Method method, String url, Map<String, String> header, Map<String, String> content) throws InternalException, ServerException, JSONErrorException
+    protected JSONObject requestJson(HttpClient.Method method, String url, Map<String, String> header, Map<String, String> content) throws InternalException, ServerException, JSONErrorException
     {
         HttpResult result = request(method, url, header, content);
 
@@ -476,7 +484,7 @@ public class Connection
         }
     }
 
-    private static String extractErrorMsg(String page)
+    protected static String extractErrorMsg(String page)
     {
         Matcher m = ERR_PATTERN.matcher(page);
         if (m.find())
@@ -485,7 +493,7 @@ public class Connection
             return null;
     }
 
-    private void requestLogin() throws InternalException, LoginException, ServerException
+    protected void requestLogin() throws InternalException, LoginException, ServerException
     {
         Map<String, String> header = generateLoginRequestHeader();
         Map<String, String> formContent = generateLoginRequestForm();
@@ -523,16 +531,22 @@ public class Connection
         }
     }
 
-    public static Connection login(final String username, final String password) throws InternalException, LoginException, ServerException
+    public void login() throws InternalException, LoginException, ServerException
     {
-        Connection connection = new Connection();
-        connection.mUsername = username;
-        connection.mPassword = password;
+        if (mUsername == null || mPassword == null)
+            throw new LoginException("Username and password are required.");
 
-        connection.requestCookies();
-        connection.requestKeys();
-        connection.requestLogin();
+        requestKeys();
+        requestLogin();
+    }
 
-        return connection;
+    public void setUsername(String username)
+    {
+        mUsername = username;
+    }
+
+    public void setPassword(String password)
+    {
+        mPassword = password;
     }
 }

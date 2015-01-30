@@ -48,6 +48,14 @@ public class Main
 
         Connection connection = null;
 
+        try {
+            connection = new Connection();
+        } catch (Exception e) {
+            writeln("Failed to initialize the connection.");
+            writeln("Terminating...");
+            return;
+        }
+
         while (true) {
             write("Username: ");
             String username = read();
@@ -55,8 +63,11 @@ public class Main
             write("Password: ");
             String password = read();
 
+            connection.setPassword(password);
+            connection.setUsername(username);
+
             try {
-                connection = Connection.login(username, password);
+                connection.login();
             } catch (Exception e) {
                 e.printStackTrace();
                 writeln("Try again.");
