@@ -50,6 +50,7 @@ public class Main
 
         try {
             connection = new Connection();
+            connection.requestCookies();
         } catch (Exception e) {
             writeln("Failed to initialize the connection.");
             writeln("Terminating...");

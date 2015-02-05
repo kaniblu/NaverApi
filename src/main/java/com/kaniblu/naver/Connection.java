@@ -190,6 +190,11 @@ public class Connection
                 }
             };
         }
+
+        public int size()
+        {
+            return mData.size();
+        }
     }
     protected static final Pattern ERR_PATTERN = Pattern.compile("<div class=\"error\" id=\"err_common\">.*?<p>([^<]*?)</p>.*?</div>", Pattern.DOTALL);
 
@@ -198,15 +203,12 @@ public class Connection
     protected KeySet mKeySet;
     protected CookieCollection mCookies = new CookieCollection();
 
-    public Connection() throws InternalException, ServerException
+    public Connection()
     {
-        requestCookies();
     }
 
-    public Connection(String username, String password) throws InternalException, ServerException
+    public Connection(String username, String password)
     {
-        this();
-
         mUsername = username;
         mPassword = password;
     }
@@ -217,6 +219,11 @@ public class Connection
         public String keyName;
         public String eValue;
         public String nValue;
+
+        public KeySet()
+        {
+
+        }
 
         @Override
         public String toString()
@@ -316,7 +323,7 @@ public class Connection
         return header;
     }
 
-    protected void requestCookies() throws InternalException, ServerException
+    public void requestCookies() throws InternalException, ServerException
     {
         HttpResult result = requestGet("https://nid.naver.com/nidlogin.login", null, null);
 

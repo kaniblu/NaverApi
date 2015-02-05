@@ -33,21 +33,41 @@ public class NewsComment
         NREPLY_DESC,
     }
 
-    private Connection mConnection;
-    private int mId;
-    private NewsArticle mArticle;
-    private NewsCommentor mCommentor;
-    private int mNReplies;
-    private DateTime mTimestamp;
-    private String mContent;
-    private boolean mIsBest;
-    private int mNUp;
-    private int mNDown;
-    private DeviceType mDevice;
+    public void setConnection(Connection connection)
+    {
+        mConnection = connection;
+    }
+
+    public void setId(int id)
+    {
+        mId = id;
+    }
+
+    public void setArticle(NewsArticle article)
+    {
+        mArticle = article;
+    }
+
+    protected Connection mConnection;
+    protected int mId;
+    protected NewsArticle mArticle;
+    protected NewsCommentor mCommentor;
+    protected int mNReplies;
+    protected DateTime mTimestamp;
+    protected String mContent;
+    protected boolean mIsBest;
+    protected int mNUp;
+    protected int mNDown;
+    protected DeviceType mDevice;
 
     public NewsComment(Connection connection)
     {
         mConnection = connection;
+    }
+
+    public NewsComment()
+    {
+
     }
 
     public NewsComment(Connection connection, NewsArticle article, int id)
