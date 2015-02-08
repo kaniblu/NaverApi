@@ -1,9 +1,9 @@
-package com.kaniblu.naver;
+package com.kaniblu.naver.api;
 
-import com.kaniblu.http.HttpClient;
-import com.kaniblu.http.HttpForm;
-import com.kaniblu.http.HttpHeaders;
-import com.kaniblu.http.HttpResult;
+import com.kaniblu.naver.http.HttpClient;
+import com.kaniblu.naver.http.HttpForm;
+import com.kaniblu.naver.http.HttpHeaders;
+import com.kaniblu.naver.http.HttpResult;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;

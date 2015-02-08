@@ -1,23 +1,20 @@
-package com.kaniblu.naver;
+package com.kaniblu.naver.api;
 
-import com.kaniblu.http.HttpForm;
-import com.kaniblu.http.HttpHeaders;
-import com.kaniblu.http.HttpResult;
-import com.sun.corba.se.spi.activation.Server;
+import com.kaniblu.naver.http.HttpForm;
+import com.kaniblu.naver.http.HttpHeaders;
+import com.kaniblu.naver.http.HttpResult;
+
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

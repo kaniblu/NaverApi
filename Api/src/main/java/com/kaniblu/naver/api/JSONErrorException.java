@@ -1,4 +1,4 @@
-package com.kaniblu.naver;
+package com.kaniblu.naver.api;
 
 public class JSONErrorException extends Exception
 {

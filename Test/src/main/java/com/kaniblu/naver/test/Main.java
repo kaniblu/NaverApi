@@ -1,6 +1,8 @@
 package com.kaniblu.naver.test;
 
-import com.kaniblu.naver.*;
+import com.kaniblu.naver.api.Connection;
+import com.kaniblu.naver.api.NewsArticle;
+import com.kaniblu.naver.api.NewsComment;
 
 import java.io.IOException;
 import java.util.List;

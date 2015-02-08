@@ -1,4 +1,4 @@
-package com.kaniblu.http;
+package com.kaniblu.naver.http;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;

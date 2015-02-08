@@ -1,16 +1,13 @@
-package com.kaniblu.naver;
+package com.kaniblu.naver.api;
 
-import com.kaniblu.http.HttpForm;
-import com.kaniblu.http.HttpHeaders;
-import com.kaniblu.http.HttpResult;
+import com.kaniblu.naver.http.HttpForm;
+import com.kaniblu.naver.http.HttpResult;
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

@@ -2,32 +2,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.kaniblu.naver.test</groupId>
+    <artifactId>Test</artifactId>
+    <version>${project-version}</version>
+	
     <parent>
         <artifactId>Naver</artifactId>
         <groupId>com.kaniblu.naver</groupId>
-        <version>1.0</version>
+		<version>${project-version}</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.kaniblu.naver.test</groupId>
-    <artifactId>Naver-Test</artifactId>
-    <version>1.0</version>
-
+	
     <dependencies>
         <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>2.7</version>
-        </dependency>
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20141113</version>
-        </dependency>
-        <dependency>
-            <groupId>com.kaniblu.naver</groupId>
-            <artifactId>Naver</artifactId>
-            <version>1.0</version>
+            <groupId>com.kaniblu.naver.api</groupId>
+            <artifactId>Api</artifactId>
+            <version>${project-version}</version>
         </dependency>
     </dependencies>
 </project>

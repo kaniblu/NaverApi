@@ -1,4 +1,4 @@
-package com.kaniblu.http;
+package com.kaniblu.naver.http;
 
 import java.util.HashMap;
 

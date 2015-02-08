@@ -1,4 +1,4 @@
-package com.kaniblu.naver;
+package com.kaniblu.naver.api;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

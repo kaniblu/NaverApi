@@ -1,4 +1,4 @@
-package com.kaniblu.naver;
+package com.kaniblu.naver.api;
 
 /**
  * Created by Kani on 1/27/2015.
