@@ -22,12 +22,33 @@ public class NewsArticle
 {
     private static final Logger logger = Logger.getLogger(NewsArticle.class.getCanonicalName());
 
-    private Connection mConnection;
-    private String mOid;
-    private String mAid;
-    private String mContent;
-    private DateTime mTimestamp;
-    private int mNComment;
+    public void setConnection(Connection connection)
+    {
+        mConnection = connection;
+    }
+
+    public void setOid(String oid)
+    {
+        mOid = oid;
+    }
+
+    public void setAid(String aid)
+    {
+        mAid = aid;
+    }
+
+    protected Connection mConnection;
+    protected String mOid;
+    protected String mAid;
+    protected String mContent;
+    protected DateTime mTimestamp;
+    protected int mNComment;
+    protected String mTitle;
+
+    public String getTitle()
+    {
+        return mTitle;
+    }
 
     public Connection getConnection()
     {
@@ -61,6 +82,11 @@ public class NewsArticle
         mAid = aid;
     }
 
+    public NewsArticle()
+    {
+
+    }
+
     public void retrieveContent() throws ServerException, InternalException
     {
         HttpResult result = mConnection.requestGet("http://news.naver.com/main/read.nhn?oid=" + mOid + "&aid=" + mAid, null, null);
@@ -79,6 +105,15 @@ public class NewsArticle
         }
 
         mContent = divs.get(0).text().trim();
+
+        divs = doc.select("h3[id=articleTitle]");
+
+        if (divs.size() < 1) {
+            logger.log(Level.SEVERE, "Unable to parse news title.");
+            throw new ServerException();
+        }
+
+        mTitle = divs.get(0).text().trim();
 
         divs = doc.select("div[class=sponsor]");
 

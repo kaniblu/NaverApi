@@ -2,9 +2,6 @@ package com.kaniblu.naver.api;
 
 import java.util.List;
 
-/**
- * Created by Kani on 1/27/2015.
- */
 public class NewsCommentor
 {
     public enum Type
@@ -14,9 +11,14 @@ public class NewsCommentor
         TWITTER,
     }
 
-    private String mHashed;
-    private String mUsername;
-    private Type mType;
+    protected String mHashed;
+    protected String mUsername;
+    protected Type mType;
+
+    public NewsCommentor()
+    {
+
+    }
 
     public NewsCommentor(String username, String hashed, Type type)
     {
