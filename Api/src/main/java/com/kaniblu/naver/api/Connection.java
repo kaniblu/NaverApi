@@ -132,6 +132,12 @@ public class Connection
                         {
                             return mData.get(mKeySet.next());
                         }
+
+			@Override
+			public void remove()
+			{
+			    return;
+			}
                     };
                 }
 
