@@ -15,12 +15,12 @@ public class HttpResult
     public Map<String, List<String>> headers;
     public byte[] content;
 
-    public HttpResult(String url, int statusCode, Map<String, List<String>> headers, byte[] content)
+    public HttpResult(String url, int statusCode, HttpHeaders headers, byte[] content)
     {
-        url = url;
-        statusCode = statusCode;
-        headers = headers;
-        content = content;
+        this.url = url;
+        this.statusCode = statusCode;
+        this.headers = headers;
+        this.content = content;
     }
 
     public String tryGetEncoding()

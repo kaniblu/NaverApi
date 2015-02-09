@@ -278,9 +278,9 @@ public class Connection
         return encrypt;
     }
 
-    protected Map<String, String> generateLoginRequestForm()
+    protected HttpForm generateLoginRequestForm()
     {
-        Map<String, String> formContent = new HashMap<String, String>();
+    	HttpForm formContent = new HttpForm();
         String encrypted = getEncryptedCredentials();
 
         if (encrypted == null) {
@@ -309,9 +309,9 @@ public class Connection
         return s.length() > 0 ? s.substring(0, s.length() - 2) : s;
     }
 
-    protected Map<String, String> generateDefaultRequestHeader()
+    protected HttpHeaders generateDefaultRequestHeader()
     {
-        HashMap<String, String> header = new HashMap<String, String>();
+    	HttpHeaders header = new HttpHeaders();
         header.put("Accept", "*/*");
         header.put("Accept-Language", "en-GB,en;q=0.8,en-US;q=0.6,ko;q=0.4,pt;q=0.2,zh-CN;q=0.2,zh;q=0.2,zh-TW;q=0.2,ja;q=0.2");
         header.put("Cookie", generateCookieHeader());
@@ -320,9 +320,9 @@ public class Connection
         return header;
     }
 
-    protected Map<String, String> generateLoginRequestHeader()
+    protected HttpHeaders generateLoginRequestHeader()
     {
-        Map<String, String> header = new HashMap<String, String>();
+        HttpHeaders header = new HttpHeaders();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         header.put("Host", "nid.naver.com");
 
@@ -339,12 +339,12 @@ public class Connection
         }
     }
 
-    public HttpResult requestGet(String url, Map<String, String> header, Map<String, String> content) throws ServerException
+    public HttpResult requestGet(String url, HttpHeaders header, HttpForm content) throws ServerException
     {
         return request(HttpClient.Method.GET, url, header, content);
     }
 
-    public HttpResult requestPost(String url, Map<String, String> header, Map<String, String> content) throws ServerException
+    public HttpResult requestPost(String url, HttpHeaders header, HttpForm content) throws ServerException
     {
         return request(HttpClient.Method.POST, url, header, content);
     }
@@ -396,14 +396,14 @@ public class Connection
         }
     }
 
-    protected HttpResult request(HttpClient.Method method, String url, Map<String, String> header, Map<String, String> content) throws ServerException
+    protected HttpResult request(HttpClient.Method method, String url, HttpHeaders header, HttpForm content) throws ServerException
     {
-        Map<String, String> basicHeader = generateDefaultRequestHeader();
+        HttpHeaders basicHeader = generateDefaultRequestHeader();
 
         if (header == null)
             header = basicHeader;
         else {
-            for (Map.Entry<String, String> entry : basicHeader.entrySet())
+            for (Map.Entry<String, List<String>> entry : basicHeader.entrySet())
                 if (!header.containsKey(entry.getKey()))
                     header.put(entry.getKey(), entry.getValue());
         }
@@ -444,7 +444,7 @@ public class Connection
         return requestJson(HttpClient.Method.GET, url, header, null);
     }
 
-    protected JSONObject requestJson(HttpClient.Method method, String url, Map<String, String> header, Map<String, String> content) throws InternalException, ServerException, JSONErrorException
+    protected JSONObject requestJson(HttpClient.Method method, String url, HttpHeaders header, HttpForm content) throws InternalException, ServerException, JSONErrorException
     {
         HttpResult result = request(method, url, header, content);
 
@@ -508,8 +508,8 @@ public class Connection
 
     protected void requestLogin() throws InternalException, LoginException, ServerException
     {
-        Map<String, String> header = generateLoginRequestHeader();
-        Map<String, String> formContent = generateLoginRequestForm();
+        HttpHeaders header = generateLoginRequestHeader();
+        HttpForm formContent = generateLoginRequestForm();
 
         if (header == null || formContent == null) {
             logger.log(Level.SEVERE, "Failed to generate header or form content.");

@@ -49,17 +49,17 @@ public class HttpClient
         return _request(method, url, null, null);
     }
 
-    public static HttpResult request(Method method, String url, Map<String, String> headers)
+    public static HttpResult request(Method method, String url, HttpHeaders headers)
     {
         return _request(method, url, headers, null);
     }
 
-    public static HttpResult request(Method method, String url, Map<String, String> headers, String content)
+    public static HttpResult request(Method method, String url, HttpHeaders headers, String content)
     {
         return _request(method, url, headers, new StringEntity(content, "text/plain"));
     }
 
-    public static HttpResult request(Method method, String url, Map<String, String> headers, Map<String, String> formData)
+    public static HttpResult request(Method method, String url, HttpHeaders headers, HttpForm formData)
     {
         StringEntity formEntity = null;
 
@@ -67,7 +67,7 @@ public class HttpClient
             formEntity = constructFormEntity(formData);
 
             if (headers == null)
-                headers = new HashMap<String, String>();
+                headers = new HttpHeaders();
 
             if (headers.containsKey("Content-Type"))
                 headers.remove("Content-Type");
@@ -78,7 +78,7 @@ public class HttpClient
         return _request(method, url, headers, formEntity);
     }
 
-    private static StringEntity constructFormEntity(Map<String, String> formData)
+    private static StringEntity constructFormEntity(HttpForm formData)
     {
         List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 
@@ -93,9 +93,9 @@ public class HttpClient
         }
     }
 
-    private static HashMap<String, List<String>> getHeaders(HttpResponse response)
+    private static HttpHeaders getHeaders(HttpResponse response)
     {
-        HashMap<String, List<String>> headerMap = new HashMap<String, List<String>>();
+    	HttpHeaders headerMap = new HttpHeaders();
         for (Header header : response.getAllHeaders()) {
             String key = header.getName().toLowerCase();
             if (!headerMap.containsKey(key))
@@ -106,7 +106,7 @@ public class HttpClient
         return headerMap;
     }
 
-    private static HttpResult _request(Method method, String url, Map<String, String> headers, StringEntity content)
+    private static HttpResult _request(Method method, String url, HttpHeaders headers, StringEntity content)
     {
         org.apache.http.impl.client.CloseableHttpClient client = HttpClients.createDefault();
         HttpResponse response = null;
@@ -116,16 +116,16 @@ public class HttpClient
                 HttpGet get = new HttpGet(url);
 
                 if (headers != null)
-                    for (Map.Entry<String, String> entry : headers.entrySet())
-                        get.setHeader(entry.getKey(), entry.getValue());
-
+                    for (Map.Entry<String, List<String>> entry : headers.entrySet()) 
+                		get.setHeader(entry.getKey(), entry.getValue().isEmpty() ? null : entry.getValue().get(0));
+                        
                 response = client.execute(get);
             } else if (method == Method.POST) {
                 HttpPost post = new HttpPost(url);
 
                 if (headers != null)
-                    for (Map.Entry<String, String> entry : headers.entrySet())
-                        post.setHeader(entry.getKey(), entry.getValue());
+                    for (Map.Entry<String, List<String>> entry : headers.entrySet())
+                        post.setHeader(entry.getKey(), entry.getValue().isEmpty() ? null : entry.getValue().get(0));
                 if (content != null)
                     post.setEntity(content);
 
@@ -148,7 +148,7 @@ public class HttpClient
         Integer statusCode = response.getStatusLine().getStatusCode();
         result.statusCode = statusCode;
 
-        HashMap<String, List<String>> responseHeaders = getHeaders(response);
+        HttpHeaders responseHeaders = getHeaders(response);
         result.headers = responseHeaders;
 
         HttpEntity entity = response.getEntity();
