@@ -17,7 +17,7 @@
     <dependencies>
         <dependency>
             <groupId>com.kaniblu.naver.api</groupId>
-            <artifactId>Api</artifactId>
+            <artifactId>NaverApi</artifactId>
             <version>${project-version}</version>
         </dependency>
     </dependencies>

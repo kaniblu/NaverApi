@@ -5,7 +5,7 @@
 		 
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.kaniblu.naver.api</groupId>
-    <artifactId>Api</artifactId>
+    <artifactId>NaverApi</artifactId>
     <packaging>jar</packaging>
     <version>${project-version}</version>
 
