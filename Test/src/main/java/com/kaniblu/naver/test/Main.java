@@ -3,6 +3,7 @@ package com.kaniblu.naver.test;
 import com.kaniblu.naver.api.Connection;
 import com.kaniblu.naver.api.NewsArticle;
 import com.kaniblu.naver.api.NewsComment;
+import com.kaniblu.naver.api.ServerException;
 
 import java.io.IOException;
 import java.util.List;
@@ -22,7 +23,7 @@ public class Main
             return null;
         }
 
-        return new String(BUFFER, 0, read > 0 ? read - 1 : read);
+        return new String(BUFFER, 0, read > 0 ? read - 1 : read).trim();
     }
 
     public static void writeln(String msg)
@@ -86,12 +87,13 @@ public class Main
             writeln("2. Read a comment");
             writeln("3. Write a comment");
             writeln("4. Delete a comment");
-            write("Your choice? [1-4]: ");
+            writeln("5. Get daily news list");
+            write("Your choice? [1-5]: ");
 
             Integer choice = tryParseInt(read());
-
-            if (choice == null || choice < 1 || choice > 4) {
-                writeln("Choose a number between 1 to 4.");
+            
+            if (choice == null || choice < 1 || choice > 5) {
+                writeln("Choose a number between 1 to 5.");
                 continue;
             }
 
@@ -173,6 +175,30 @@ public class Main
                         }
                     }
                     break;
+                case 5 :
+                	writeln("What date(YYYYMMDD) do you want to get?");
+                	
+                	String date = read();
+                	if(!date.matches("\\d{4}\\d{2}\\d{2}")) {
+                		writeln("Wrong date format");
+                		break;
+                	}
+                	
+					try {
+						List<NewsArticle> newsList = NewsArticle.getDailyRankedNewsList(new Connection(), date);
+						writeln(newsList.size() + " ranked news retrieved");
+						
+						for(NewsArticle a : newsList) {
+							writeln(a.getGno());
+						}
+					} catch (ServerException e) {
+						// TODO Auto-generated catch block
+                        writeln("An exception occurred.");
+						e.printStackTrace();
+						break;
+					}
+                	
+                	break;
             }
         }
     }

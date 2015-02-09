@@ -11,12 +11,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NewsArticle
 {
@@ -85,6 +89,57 @@ public class NewsArticle
     public NewsArticle()
     {
 
+    }
+    
+    public static List<NewsArticle> getDailyRankedNewsList(Connection connection, String date) throws ServerException {
+    	HttpResult result = connection.requestGet("http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date=" + date, null, null);
+    	
+    	if(result == null || !result.isStatusOk() || !result.hasContent()) {
+            logger.log(Level.SEVERE, "Could not contact the server, or the server returned an error.");
+            throw new ServerException();    		
+    	}
+    	
+    	Document doc = Jsoup.parse(result.getContentAsString());
+    	
+    	Elements rank = doc.select("div.ranking_top3 > ol > li > dl > dt > a");
+    	Elements rankOthers = doc.select("ol.all_ranking > li > dl > dt > a");    	
+    	
+    	if(rank != null && rankOthers != null && rank.isEmpty() && rankOthers.isEmpty()) {
+    		logger.log(Level.SEVERE, "Unable to parse daily ranked news article page.");
+    		throw new ServerException();
+    	}
+    	
+    	rank.addAll(rankOthers);
+    	
+    	List<NewsArticle> rankedNewsList = new LinkedList<NewsArticle>();
+
+		Pattern aidPattern = Pattern.compile("aid=([^&]+)");
+		Pattern oidPattern = Pattern.compile("oid=([^&]+)");
+		
+    	for(Element e : rank) {
+    		String href = e.attr("href");
+    		
+    		String aid = "";
+    		String oid = "";
+    		
+    		Matcher matcher = aidPattern.matcher(href);
+    		if(matcher.find()) {
+    			aid = matcher.group();
+    		}
+    		
+    		matcher = oidPattern.matcher(href);
+    		if(matcher.find()) {
+    			oid = matcher.group();
+    		}
+    		
+    		if(aid != "" && oid != "") {
+    			rankedNewsList.add(new NewsArticle(connection, oid, aid));
+    		} else {
+    			logger.log(Level.SEVERE, "Unable to parse aid, oid from news article href.");
+    		}
+    	}
+    	
+    	return rankedNewsList;
     }
 
     public void retrieveContent() throws ServerException, InternalException
