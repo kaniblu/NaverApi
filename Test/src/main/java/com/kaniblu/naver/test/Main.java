@@ -6,6 +6,7 @@ import com.kaniblu.naver.api.NewsComment;
 import com.kaniblu.naver.api.ServerException;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.LogManager;
 
@@ -91,7 +92,7 @@ public class Main
             write("Your choice? [1-5]: ");
 
             Integer choice = tryParseInt(read());
-            
+
             if (choice == null || choice < 1 || choice > 5) {
                 writeln("Choose a number between 1 to 5.");
                 continue;
@@ -175,30 +176,30 @@ public class Main
                         }
                     }
                     break;
-                case 5 :
-                	writeln("What date(YYYYMMDD) do you want to get?");
-                	
-                	String date = read();
-                	if(!date.matches("\\d{4}\\d{2}\\d{2}")) {
-                		writeln("Wrong date format");
-                		break;
-                	}
-                	
-					try {
-						List<NewsArticle> newsList = NewsArticle.getDailyRankedNewsList(new Connection(), date);
-						writeln(newsList.size() + " ranked news retrieved");
-						
-						for(NewsArticle a : newsList) {
-							writeln(a.getGno());
-						}
-					} catch (ServerException e) {
-						// TODO Auto-generated catch block
+                case 5:
+                    writeln("What date(YYYYMMDD) do you want to get?");
+
+                    String date = read();
+                    if (!date.matches("\\d{4}\\d{2}\\d{2}")) {
+                        writeln("Wrong date format");
+                        break;
+                    }
+
+                    try {
+                        List<NewsArticle> newsList = NewsArticle.getDailyRankedNewsList(new Connection(), date);
+                        writeln(newsList.size() + " ranked news retrieved");
+
+                        for (NewsArticle a : newsList) {
+                            writeln(a.getGno());
+                        }
+                    } catch (ServerException e) {
+                        // TODO Auto-generated catch block
                         writeln("An exception occurred.");
-						e.printStackTrace();
-						break;
-					}
-                	
-                	break;
+                        e.printStackTrace();
+                        break;
+                    }
+
+                    break;
             }
         }
     }

@@ -6,15 +6,29 @@
     <groupId>com.kaniblu.naver</groupId>
     <artifactId>Naver</artifactId>
     <packaging>pom</packaging>
-	<version>${project-version}</version>
-	
+    <version>0.1</version>
+
     <modules>
-		<module>NaverApi</module>
+        <module>NaverApi</module>
         <module>HttpClient</module>
         <module>Test</module>
     </modules>
-	
-	<properties>
-		<project-version>0.1</project-version>
-	</properties>
+
+    <properties>
+        <project-version>0.1</project-version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.2</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

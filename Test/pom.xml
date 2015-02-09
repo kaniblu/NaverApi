@@ -6,19 +6,19 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.kaniblu.naver.test</groupId>
     <artifactId>Test</artifactId>
-    <version>${project-version}</version>
+    <version>0.1</version>
 	
     <parent>
         <artifactId>Naver</artifactId>
         <groupId>com.kaniblu.naver</groupId>
-		<version>${project-version}</version>
+		<version>0.1</version>
     </parent>
 	
     <dependencies>
         <dependency>
             <groupId>com.kaniblu.naver.api</groupId>
             <artifactId>NaverApi</artifactId>
-            <version>${project-version}</version>
+            <version>0.1</version>
         </dependency>
     </dependencies>
 </project>
