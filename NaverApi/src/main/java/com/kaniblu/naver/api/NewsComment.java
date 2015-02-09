@@ -3,8 +3,6 @@ package com.kaniblu.naver.api;
 import com.kaniblu.naver.http.HttpForm;
 import com.kaniblu.naver.http.HttpResult;
 import org.joda.time.DateTime;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;

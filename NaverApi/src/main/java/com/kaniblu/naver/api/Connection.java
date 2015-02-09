@@ -9,7 +9,6 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -280,7 +279,7 @@ public class Connection
 
     protected HttpForm generateLoginRequestForm()
     {
-    	HttpForm formContent = new HttpForm();
+        HttpForm formContent = new HttpForm();
         String encrypted = getEncryptedCredentials();
 
         if (encrypted == null) {
@@ -311,7 +310,7 @@ public class Connection
 
     protected HttpHeaders generateDefaultRequestHeader()
     {
-    	HttpHeaders header = new HttpHeaders();
+        HttpHeaders header = new HttpHeaders();
         header.put("Accept", "*/*");
         header.put("Accept-Language", "en-GB,en;q=0.8,en-US;q=0.6,ko;q=0.4,pt;q=0.2,zh-CN;q=0.2,zh;q=0.2,zh-TW;q=0.2,ja;q=0.2");
         header.put("Cookie", generateCookieHeader());
