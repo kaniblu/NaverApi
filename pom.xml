@@ -9,7 +9,7 @@
 	<version>${project-version}</version>
 	
     <modules>
-		<module>Api</module>
+		<module>NaverApi</module>
         <module>HttpClient</module>
         <module>Test</module>
     </modules>
