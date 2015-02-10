@@ -1,9 +1,6 @@
 package com.kaniblu.naver.api;
 
-import com.kaniblu.naver.http.HttpClient;
-import com.kaniblu.naver.http.HttpForm;
-import com.kaniblu.naver.http.HttpHeaders;
-import com.kaniblu.naver.http.HttpResult;
+import com.kaniblu.naver.http.*;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -233,7 +230,7 @@ public class Connection
     {
         HttpResult result = HttpClient.request(HttpClient.Method.POST, "https://nid.naver.com/login/ext/keys.nhn");
 
-        if (result.statusCode / 100 != 2 || result.content == null) {
+        if (result.getStatusCode() / 100 != 2 || result.getContent() == null) {
             logger.log(Level.SEVERE, "Key request returned abnormal status code or empty content.");
             throw new InternalException();
         }
@@ -265,9 +262,9 @@ public class Connection
         return s.length() > 0 ? s.substring(0, s.length() - 2) : s;
     }
 
-    protected HttpHeaders generateDefaultRequestHeader()
+    protected HttpHeaderCollection generateDefaultRequestHeader()
     {
-        HttpHeaders header = new HttpHeaders();
+        HttpHeaderCollection header = new HttpHeaderCollection();
         header.put("Accept", "*/*");
         header.put("Accept-Language", "en-GB,en;q=0.8,en-US;q=0.6,ko;q=0.4,pt;q=0.2,zh-CN;q=0.2,zh;q=0.2,zh-TW;q=0.2,ja;q=0.2");
         header.put("Cookie", generateCookieHeader());
@@ -276,20 +273,21 @@ public class Connection
         return header;
     }
 
-    public HttpResult requestGet(String url, HttpHeaders header, HttpForm content) throws ServerException
+    public HttpResult requestGet(String url, HttpHeaderCollection header, HttpForm content) throws ServerException
     {
         return request(HttpClient.Method.GET, url, header, content);
     }
 
-    public HttpResult requestPost(String url, HttpHeaders header, HttpForm content) throws ServerException
+    public HttpResult requestPost(String url, HttpHeaderCollection header, HttpForm content) throws ServerException
     {
         return request(HttpClient.Method.POST, url, header, content);
     }
 
     protected void storeCookie(HttpResult result)
     {
-        if (result != null && result.headers.containsKey("set-cookie")) {
-            for (String headerValue : result.headers.get("set-cookie")) {
+        if (result != null && result.getHeaders().containsKey("set-cookie")) {
+            for (HttpHeader header : result.getHeaders().get("set-cookie")) {
+                String headerValue = header.getValue();
                 String[] cookieKVP = headerValue.split(";");
 
                 if (cookieKVP.length < 1)
@@ -333,34 +331,34 @@ public class Connection
         }
     }
 
-    protected HttpResult request(HttpClient.Method method, String url, HttpHeaders header, HttpForm content) throws ServerException
+    protected HttpResult request(HttpClient.Method method, String url, HttpHeaderCollection header, HttpForm content) throws ServerException
     {
-        HttpHeaders basicHeader = generateDefaultRequestHeader();
+        HttpHeaderCollection basicHeader = generateDefaultRequestHeader();
 
         if (header == null)
             header = basicHeader;
         else {
-            for (Map.Entry<String, List<String>> entry : basicHeader.entrySet())
-                if (!header.containsKey(entry.getKey()))
-                    header.put(entry.getKey(), entry.getValue());
+            for (HttpHeader h : basicHeader)
+                if (!header.containsKey(h.getKey()))
+                    header.put(h.getKey(), h.getValue());
         }
 
         HttpResult result = HttpClient.request(method, url, header, content);
         storeCookie(result);
 
         if (result != null) {
-            switch (result.statusCode / 100) {
+            switch (result.getStatusCode() / 100) {
                 case 2:
-                    logger.log(Level.INFO, "The return status is Ok: " + result.statusCode);
+                    logger.log(Level.INFO, "The return status is Ok: " + result.getStatusCode());
                     break;
                 case 3:
-                    logger.log(Level.INFO, "The return status is Ok but with caution: " + result.statusCode);
+                    logger.log(Level.INFO, "The return status is Ok but with caution: " + result.getStatusCode());
                     break;
                 case 4:
-                    logger.log(Level.INFO, "The return status states that there was a client error: " + result.statusCode);
+                    logger.log(Level.INFO, "The return status states that there was a client error: " + result.getStatusCode());
                     break;
                 case 5:
-                    logger.log(Level.INFO, "The return status states that there was a server-side error: " + result.statusCode);
+                    logger.log(Level.INFO, "The return status states that there was a server-side error: " + result.getStatusCode());
                     break;
             }
         }
@@ -371,17 +369,17 @@ public class Connection
         return result;
     }
 
-    public JSONObject requestJsonPost(String url, HttpHeaders header, HttpForm content) throws InternalException, ServerException, JSONErrorException
+    public JSONObject requestJsonPost(String url, HttpHeaderCollection header, HttpForm content) throws InternalException, ServerException, JSONErrorException
     {
         return requestJson(HttpClient.Method.POST, url, header, content);
     }
 
-    public JSONObject requestJsonGet(String url, HttpHeaders header) throws InternalException, ServerException, JSONErrorException
+    public JSONObject requestJsonGet(String url, HttpHeaderCollection header) throws InternalException, ServerException, JSONErrorException
     {
         return requestJson(HttpClient.Method.GET, url, header, null);
     }
 
-    protected JSONObject requestJson(HttpClient.Method method, String url, HttpHeaders header, HttpForm content) throws InternalException, ServerException, JSONErrorException
+    protected JSONObject requestJson(HttpClient.Method method, String url, HttpHeaderCollection header, HttpForm content) throws InternalException, ServerException, JSONErrorException
     {
         HttpResult result = request(method, url, header, content);
 

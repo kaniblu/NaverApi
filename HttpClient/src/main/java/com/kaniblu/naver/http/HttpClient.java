@@ -1,23 +1,10 @@
 package com.kaniblu.naver.http;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,25 +36,33 @@ public class HttpClient
         return _request(method, url, null, null);
     }
 
-    public static HttpResult request(Method method, String url, HttpHeaders headers)
+    public static HttpResult request(Method method, String url, HttpHeaderCollection headers)
     {
         return _request(method, url, headers, null);
     }
 
-    public static HttpResult request(Method method, String url, HttpHeaders headers, String content)
+    public static HttpResult request(Method method, String url, HttpHeaderCollection headers, String content)
     {
-        return _request(method, url, headers, new StringEntity(content, "text/plain"));
+        return _request(method, url, headers, content.getBytes());
     }
 
-    public static HttpResult request(Method method, String url, HttpHeaders headers, HttpForm formData)
+    public static HttpResult request(Method method, String url, HttpHeaderCollection headers, HttpForm formData)
     {
-        StringEntity formEntity = null;
+        byte[] content = null;
 
         if (formData != null) {
-            formEntity = constructFormEntity(formData);
+            String encoding = "UTF-8";
+            String urlEncodedContent = formData.toURLEncodedString(encoding);
+
+            try {
+                content = urlEncodedContent.getBytes(encoding);
+            } catch (UnsupportedEncodingException e) {
+                logger.log(Level.SEVERE, "Unrecognized encoding type.");
+                return null;
+            }
 
             if (headers == null)
-                headers = new HttpHeaders();
+                headers = new HttpHeaderCollection();
 
             if (headers.containsKey("Content-Type"))
                 headers.remove("Content-Type");
@@ -75,115 +70,98 @@ public class HttpClient
             headers.put("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
         }
 
-        return _request(method, url, headers, formEntity);
+        return _request(method, url, headers, content);
     }
 
-    private static StringEntity constructFormEntity(HttpForm formData)
+    private static HttpResult _request(Method method, String url, HttpHeaderCollection headers, byte[] content)
     {
-        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-
-        for (Map.Entry<String, String> entry : formData.entrySet())
-            nameValuePairs.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+        URL urlObject = null;
 
         try {
-            return new UrlEncodedFormEntity(nameValuePairs);
-        } catch (UnsupportedEncodingException e) {
-            logger.log(Level.SEVERE, "Form data contains unsupported encoding.", e);
+            urlObject = new URL(url);
+        } catch (MalformedURLException e) {
+            logger.log(Level.WARNING, "Invalid url!", e);
             return null;
         }
-    }
 
-    private static HttpHeaders getHeaders(HttpResponse response)
-    {
-    	HttpHeaders headerMap = new HttpHeaders();
-        for (Header header : response.getAllHeaders()) {
-            String key = header.getName().toLowerCase();
-            if (!headerMap.containsKey(key))
-                headerMap.put(key, new ArrayList<String>());
-            headerMap.get(key).add(header.getValue());
-        }
-
-        return headerMap;
-    }
-
-    private static HttpResult _request(Method method, String url, HttpHeaders headers, StringEntity content)
-    {
-        org.apache.http.impl.client.CloseableHttpClient client = HttpClients.createDefault();
-        HttpResponse response = null;
+        HttpURLConnection connection = null;
 
         try {
-            if (method == Method.GET) {
-                HttpGet get = new HttpGet(url);
+            connection = (HttpURLConnection)urlObject.openConnection();
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Could not communicate with the server.", e);
+            return null;
+        }
 
-                if (headers != null)
-                    for (Map.Entry<String, List<String>> entry : headers.entrySet()) 
-                		get.setHeader(entry.getKey(), entry.getValue().isEmpty() ? null : entry.getValue().get(0));
-                        
-                response = client.execute(get);
-            } else if (method == Method.POST) {
-                HttpPost post = new HttpPost(url);
+        try {
+            switch (method) {
+                case POST:
+                    connection.setRequestMethod("POST");
+                    break;
+                case GET:
+                default:
+                    connection.setRequestMethod("GET");
+                    break;
+            }
+        } catch (ProtocolException e) {
+            logger.log(Level.SEVERE, "Unexpected http request method error.", e);
+            return null;
+        }
 
-                if (headers != null)
-                    for (Map.Entry<String, List<String>> entry : headers.entrySet())
-                        post.setHeader(entry.getKey(), entry.getValue().isEmpty() ? null : entry.getValue().get(0));
-                if (content != null)
-                    post.setEntity(content);
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
 
-                response = client.execute(post);
-            } else {
-                logger.log(Level.SEVERE, "Critical Error: unknown method.");
+        if (headers != null)
+            for (HttpHeader header : headers)
+                connection.setRequestProperty(header.getKey(), header.getValue());
+
+        if (content != null) {
+            OutputStream stream = null;
+
+            try {
+                stream = connection.getOutputStream();
+                stream.write(content);
+                stream.flush();
+                stream.close();
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Failed to open output stream.");
                 return null;
             }
-        } catch (ClientProtocolException e) {
-            logger.log(Level.SEVERE, "Protocol error occurred during request.", e);
-            return null;
+        }
+
+        InputStream inputStream = null;
+
+        try {
+            inputStream = connection.getInputStream();
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "IO error occurred during request.", e);
+            logger.log(Level.SEVERE, "Failed to retrieve response content.");
             return null;
         }
 
         HttpResult result = new HttpResult();
         result.url = url;
 
-        Integer statusCode = response.getStatusLine().getStatusCode();
-        result.statusCode = statusCode;
-
-        HttpHeaders responseHeaders = getHeaders(response);
-        result.headers = responseHeaders;
-
-        HttpEntity entity = response.getEntity();
-
-        if (entity == null) {
-            logger.log(Level.INFO, "Response entity is empty.");
-            return result;
-        }
-
-        InputStream contentStream = null;
-
         try {
-            contentStream = entity.getContent();
+            result.statusCode = connection.getResponseCode();
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Failed to get content from entity.", e);
-            return result;
+            logger.log(Level.SEVERE, "Failed to get a response.");
+            return null;
         }
+
+        HttpHeaderCollection responseHeaders = new HttpHeaderCollection();
+        responseHeaders.putAll(connection.getHeaderFields());
+        result.headers = responseHeaders;
 
         byte[] byteArray = null;
 
         try {
-            byteArray = toByteArray(contentStream);
+            byteArray = toByteArray(inputStream);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Failed to read from inputstream.", e);
             return result;
         }
 
-        try {
-            EntityUtils.consume(entity);
-        } catch (IOException e) {
-            logger.log(Level.INFO, "Failed to close the entity.", e);
-        }
-
-        byte[] contentBytes = byteArray;
-        result.content = contentBytes;
+        result.content = byteArray;
 
         return result;
     }

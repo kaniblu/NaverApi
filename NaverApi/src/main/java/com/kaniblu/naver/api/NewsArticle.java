@@ -1,7 +1,7 @@
 package com.kaniblu.naver.api;
 
 import com.kaniblu.naver.http.HttpForm;
-import com.kaniblu.naver.http.HttpHeaders;
+import com.kaniblu.naver.http.HttpHeaderCollection;
 import com.kaniblu.naver.http.HttpResult;
 
 import org.joda.time.DateTime;
@@ -204,7 +204,7 @@ public class NewsArticle
     {
         String gno = "news" + mOid + "," + mAid;
 
-        HttpHeaders header = new HttpHeaders();
+        HttpHeaderCollection header = new HttpHeaderCollection();
         header.put("charset", "utf-8");
         header.put("Host", "comment.news.naver.com");
         header.put("Origin", "http://comment.news.naver.com");

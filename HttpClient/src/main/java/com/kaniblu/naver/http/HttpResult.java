@@ -1,8 +1,6 @@
 package com.kaniblu.naver.http;
 
 import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -10,12 +8,32 @@ public class HttpResult
 {
     private static final Logger logger = Logger.getLogger(HttpResult.class.getCanonicalName());
 
-    public String url;
-    public int statusCode;
-    public Map<String, List<String>> headers;
-    public byte[] content;
+    protected String url;
+    protected int statusCode;
+    protected HttpHeaderCollection headers;
+    protected byte[] content;
 
-    public HttpResult(String url, int statusCode, HttpHeaders headers, byte[] content)
+    public String getUrl()
+    {
+        return url;
+    }
+
+    public int getStatusCode()
+    {
+        return statusCode;
+    }
+
+    public HttpHeaderCollection getHeaders()
+    {
+        return headers;
+    }
+
+    public byte[] getContent()
+    {
+        return content;
+    }
+
+    public HttpResult(String url, int statusCode, HttpHeaderCollection headers, byte[] content)
     {
         this.url = url;
         this.statusCode = statusCode;
@@ -26,10 +44,10 @@ public class HttpResult
     public String tryGetEncoding()
     {
         if (headers.containsKey("content-encoding"))
-            return headers.get("content-encoding").get(0);
+            return headers.get("content-encoding").get(0).getValue();
         else if (headers.containsKey("content-type")) {
-            for (String type : headers.get("content-type")) {
-                String[] tokens = type.split(";");
+            for (HttpHeader type : headers.get("content-type")) {
+                String[] tokens = type.getValue().split(";");
                 if (tokens.length > 1) {
                     tokens = tokens[1].split("=");
                     if (tokens[0].trim().toLowerCase().equals("charset"))

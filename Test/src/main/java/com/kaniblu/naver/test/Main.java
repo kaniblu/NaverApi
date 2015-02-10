@@ -1,9 +1,6 @@
 package com.kaniblu.naver.test;
 
-import com.kaniblu.naver.api.Connection;
-import com.kaniblu.naver.api.NewsArticle;
-import com.kaniblu.naver.api.NewsComment;
-import com.kaniblu.naver.api.ServerException;
+import com.kaniblu.naver.api.*;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -50,10 +47,10 @@ public class Main
     {
         LogManager.getLogManager().reset();
 
-        Connection connection = null;
+        AuthorizedConnection connection = null;
 
         try {
-            connection = new Connection();
+            connection = new AuthorizedConnection();
             connection.requestCookies();
         } catch (Exception e) {
             writeln("Failed to initialize the connection.");
