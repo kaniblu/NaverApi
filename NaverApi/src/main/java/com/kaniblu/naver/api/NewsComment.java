@@ -60,7 +60,7 @@ public class NewsComment
         mConnection = connection;
     }
 
-    public NewsComment()
+    protected NewsComment()
     {
 
     }

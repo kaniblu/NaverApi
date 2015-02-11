@@ -46,16 +46,20 @@ public class Connection
     protected static class CookieCollection
     {
         protected HashMap<String, Cookie> mData;
+        protected List<Cookie> mList;
 
         public CookieCollection()
         {
             mData = new HashMap<String, Cookie>();
+            mList = new ArrayList<Cookie>();
         }
 
         public void add(Cookie cookie)
         {
-            if (mData.containsKey(cookie.key))
+            if (mData.containsKey(cookie.key)) {
+                mList.remove(mData.get(cookie.key));
                 mData.remove(cookie.key);
+            }
 
             mData.put(cookie.key, cookie);
         }
@@ -75,6 +79,7 @@ public class Connection
 
         public void remove(String key)
         {
+            mList.remove(mData.get(key));
             mData.remove(key);
         }
 
