@@ -43,10 +43,16 @@ public class Connection
         }
     }
 
-    protected static class CookieCollection
+    protected static class CookieCollection implements Iterable<Cookie>
     {
         protected HashMap<String, Cookie> mData;
         protected List<Cookie> mList;
+
+        @Override
+        public Iterator<Cookie> iterator()
+        {
+            return mList.iterator();
+        }
 
         public CookieCollection()
         {
@@ -93,111 +99,6 @@ public class Connection
             return mData.get(key).expireDate;
         }
 
-        public Set<Cookie> cookieSet()
-        {
-            return new Set<Cookie>()
-            {
-                @Override
-                public int size()
-                {
-                    return 0;
-                }
-
-                @Override
-                public boolean isEmpty()
-                {
-                    return false;
-                }
-
-                @Override
-                public boolean contains(Object o)
-                {
-                    return false;
-                }
-
-                @Override
-                public Iterator<Cookie> iterator()
-                {
-                    return new Iterator<Cookie>()
-                    {
-                        protected Iterator<String> mKeySet = mData.keySet().iterator();
-
-                        @Override
-                        public boolean hasNext()
-                        {
-                            return mKeySet.hasNext();
-                        }
-
-                        @Override
-                        public Cookie next()
-                        {
-                            return mData.get(mKeySet.next());
-                        }
-
-			@Override
-			public void remove()
-			{
-			    return;
-			}
-                    };
-                }
-
-                @Override
-                public Object[] toArray()
-                {
-                    return new Object[0];
-                }
-
-                @Override
-                public <T> T[] toArray(T[] a)
-                {
-                    return null;
-                }
-
-                @Override
-                public boolean add(Cookie cookie)
-                {
-                    return false;
-                }
-
-                @Override
-                public boolean remove(Object o)
-                {
-                    return false;
-                }
-
-                @Override
-                public boolean containsAll(Collection<?> c)
-                {
-                    return false;
-                }
-
-                @Override
-                public boolean addAll(Collection<? extends Cookie> c)
-                {
-                    return false;
-                }
-
-                @Override
-                public boolean retainAll(Collection<?> c)
-                {
-                    return false;
-                }
-
-                @Override
-                public boolean removeAll(Collection<?> c)
-                {
-                    return false;
-                }
-
-                @Override
-                public void clear()
-                {
-
-                }
-            };
-        }
-
         public int size()
         {
             return mData.size();
@@ -205,11 +106,21 @@ public class Connection
     }
     protected static final Pattern ERR_PATTERN = Pattern.compile("<div class=\"error\" id=\"err_common\">.*?<p>([^<]*?)</p>.*?</div>", Pattern.DOTALL);
 
+    protected String mUsername;
+    protected String mPassword;
     protected KeySet mKeySet;
     protected CookieCollection mCookies = new CookieCollection();
 
     public Connection()
     {
+    }
+
+    public Connection(String name, String password)
+    {
+        this();
+
+        this.mUsername = name;
+        this.mPassword = password;
     }
 
     protected static class KeySet
@@ -260,7 +171,7 @@ public class Connection
     {
         String s = "";
 
-        for (Cookie cookie : mCookies.cookieSet())
+        for (Cookie cookie : mCookies)
             if (!cookie.isExpired())
                 s += cookie.key + "=" + cookie.value + "; ";
 
@@ -444,5 +355,116 @@ public class Connection
             return m.group(1);
         else
             return null;
+    }
+
+    public void login() throws InternalException, InvalidLoginException, ServerException
+    {
+        if (mUsername == null || mPassword == null)
+            throw new InvalidLoginException("Username and password are required.");
+
+        requestKeys();
+        requestLogin();
+    }
+
+    public void setPassword(String password)
+    {
+        this.mPassword = password;
+    }
+
+    public void setUsername(String username)
+    {
+        this.mUsername = username;
+    }
+
+    protected HttpForm generateLoginRequestForm()
+    {
+        HttpForm formContent = new HttpForm();
+        String encrypted = getEncryptedCredentials();
+
+        if (encrypted == null) {
+            logger.log(Level.SEVERE, "Failed to encrypt credentials.");
+            return null;
+        }
+
+        formContent.put("enctp", "1");
+        formContent.put("encpw", encrypted);
+        formContent.put("encnm", mKeySet.keyName);
+        formContent.put("locale", "en_US");
+        formContent.put("smart_LEVEL", "1");
+        formContent.put("url", "http://www.naver.com");
+
+        return formContent;
+    }
+
+    protected HttpHeaderCollection generateLoginRequestHeader()
+    {
+        HttpHeaderCollection header = new HttpHeaderCollection();
+        header.put("Content-Type", "application/x-www-form-urlencoded");
+        header.put("Host", "nid.naver.com");
+
+        return header;
+    }
+
+    protected String getEncryptedCredentials()
+    {
+        RSA rsa = new RSA();
+        String encrypt;
+        rsa.setPublic(mKeySet.eValue, mKeySet.nValue);
+
+        encrypt = rsa.encrypt(getCharCode(mKeySet.sessionKey) + mKeySet.sessionKey + getCharCode(mUsername) + mUsername + getCharCode(mPassword) + mPassword);
+        return encrypt;
+    }
+
+    protected void requestLogin() throws InternalException, InvalidLoginException, ServerException
+    {
+        HttpHeaderCollection header = generateLoginRequestHeader();
+        HttpForm formContent = generateLoginRequestForm();
+
+        if (header == null || formContent == null) {
+            logger.log(Level.SEVERE, "Failed to generate header or form content.");
+            throw new InternalException();
+        }
+
+        HttpResult loginResult = requestPost("https://nid.naver.com/nidlogin.login", header, formContent);
+        if (!loginResult.isStatusOk()) {
+            logger.log(Level.FINE, "Login failed.");
+            throw new InternalException();
+        }
+
+        if (mCookies.contains("NID_SES") && mCookies.contains("NID_AUT")) {
+            logger.log(Level.INFO, "Login was successful.");
+            return;
+        }
+
+        if (loginResult.hasContent()) {
+            String content = loginResult.getContentAsString();
+            String msg = extractErrorMsg(content);
+
+            if (msg == null) {
+                logger.log(Level.SEVERE, "Couldn't find error message in the naver response.");
+                throw new InternalException();
+            } else {
+                logger.log(Level.FINE, "Server returned the following msg: " + msg);
+                throw new InvalidLoginException(msg);
+            }
+        } else {
+            logger.log(Level.WARNING, "No content was returned by the server.");
+            throw new InternalException();
+        }
+    }
+
+    public void requestCookies() throws InternalException, ServerException
+    {
+        HttpResult result = requestGet("https://nid.naver.com/nidlogin.login", null, null);
+
+        if (result.getStatusCode() / 100 != 2) {
+            logger.log(Level.SEVERE, "Naver is not available.");
+            throw new InternalException("Naver is not available.");
+        }
+    }
+
+    protected static String getCharCode(String s)
+    {
+        return String.valueOf((char) s.length());
     }
 }

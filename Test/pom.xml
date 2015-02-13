@@ -20,5 +20,10 @@
             <artifactId>NaverApi</artifactId>
             <version>0.1</version>
         </dependency>
+        <dependency>
+            <groupId>com.kaniblu.naver.http</groupId>
+            <artifactId>HttpClient</artifactId>
+            <version>0.1</version>
+        </dependency>
     </dependencies>
 </project>

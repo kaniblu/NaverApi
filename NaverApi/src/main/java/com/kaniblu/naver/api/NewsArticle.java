@@ -44,8 +44,28 @@ public class NewsArticle
     protected String mAid;
     protected String mContent;
     protected DateTime mTimestamp;
-    protected int mNComment;
+    protected int mCommentSize;
     protected String mTitle;
+
+    public void setTitle(String title)
+    {
+        mTitle = title;
+    }
+
+    public void setCommentSize(int NComment)
+    {
+        mCommentSize = NComment;
+    }
+
+    public void setTimestamp(DateTime timestamp)
+    {
+        mTimestamp = timestamp;
+    }
+
+    public void setContent(String content)
+    {
+        mContent = content;
+    }
 
     public String getTitle()
     {
@@ -72,9 +92,9 @@ public class NewsArticle
         return mTimestamp;
     }
 
-    public int getNComment()
+    public int getCommentSize()
     {
-        return mNComment;
+        return mCommentSize;
     }
 
     public NewsArticle(Connection connection, String oid, String aid)
@@ -88,59 +108,63 @@ public class NewsArticle
     {
 
     }
-    
-    public static List<NewsArticle> getDailyRankedNewsList(Connection connection, String date) throws ServerException {
-    	HttpResult result = connection.requestGet("http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date=" + date, null, null);
-    	
-    	if(result == null || !result.isStatusOk() || !result.hasContent()) {
-            logger.log(Level.SEVERE, "Could not contact the server, or the server returned an error.");
-            throw new ServerException();    		
-    	}
-    	
-    	Document doc = Jsoup.parse(result.getContentAsString());
-    	
-    	Elements rank = doc.select("div.ranking_top3 > ol > li > dl > dt > a");
-    	Elements rankOthers = doc.select("ol.all_ranking > li > dl > dt > a");    	
-    	
-    	if(rank != null && rankOthers != null && rank.isEmpty() && rankOthers.isEmpty()) {
-    		logger.log(Level.SEVERE, "Unable to parse daily ranked news article page.");
-    		throw new ServerException();
-    	}
-    	
-    	rank.addAll(rankOthers);
-    	
-    	List<NewsArticle> rankedNewsList = new LinkedList<NewsArticle>();
 
-		Pattern aidPattern = Pattern.compile("aid=([^&]+)");
-		Pattern oidPattern = Pattern.compile("oid=([^&]+)");
-		
-    	for(Element e : rank) {
-    		String href = e.attr("href");
-    		
-    		String aid = "";
-    		String oid = "";
-    		
-    		Matcher matcher = aidPattern.matcher(href);
-    		if(matcher.find()) {
-    			aid = matcher.group();
-    		}
-    		
-    		matcher = oidPattern.matcher(href);
-    		if(matcher.find()) {
-    			oid = matcher.group();
-    		}
-    		
-    		if(aid != "" && oid != "") {
-    			rankedNewsList.add(new NewsArticle(connection, oid, aid));
-    		} else {
-    			logger.log(Level.SEVERE, "Unable to parse aid, oid from news article href.");
-    		}
-    	}
-    	
-    	return rankedNewsList;
+    public static List<NewsArticle> getDailyRankedNewsList(Connection connection, String date) throws ServerException
+    {
+        HttpResult result = connection.requestGet("http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date=" + date, null, null);
+
+        if (result == null || !result.isStatusOk() || !result.hasContent()) {
+            logger.log(Level.SEVERE, "Could not contact the server, or the server returned an error.");
+            throw new ServerException();
+        }
+
+        Document doc = Jsoup.parse(result.getContentAsString());
+
+        Elements rank = doc.select("div.ranking_top3 > ol > li > dl > dt > a");
+        Elements rankOthers = doc.select("ol.all_ranking > li > dl > dt > a");
+
+        if (rank == null || rankOthers == null || rank.isEmpty() || rankOthers.isEmpty()) {
+            logger.log(Level.SEVERE, "Unable to parse daily ranked news article page.");
+            throw new ServerException();
+        }
+
+        rank.addAll(rankOthers);
+
+        List<NewsArticle> rankedNewsList = new LinkedList<NewsArticle>();
+
+        Pattern aidPattern = Pattern.compile("aid=([^&]+)");
+        Pattern oidPattern = Pattern.compile("oid=([^&]+)");
+
+        for (Element e : rank) {
+            String href = e.attr("href");
+            String title = e.text().trim();
+
+            String aid = "";
+            String oid = "";
+
+            Matcher matcher = aidPattern.matcher(href);
+            if (matcher.find()) {
+                aid = matcher.group();
+            }
+
+            matcher = oidPattern.matcher(href);
+            if (matcher.find()) {
+                oid = matcher.group();
+            }
+
+            if (aid != "" && oid != "") {
+                NewsArticle article = new NewsArticle(connection, oid, aid);
+                article.setTitle(title);
+                rankedNewsList.add(article);
+            } else {
+                logger.log(Level.SEVERE, "Unable to parse aid, oid from news article href.");
+            }
+        }
+
+        return rankedNewsList;
     }
 
-    public void retrieveContent() throws ServerException, InternalException
+    public void retrieve() throws ServerException, InternalException
     {
         HttpResult result = mConnection.requestGet("http://news.naver.com/main/read.nhn?oid=" + mOid + "&aid=" + mAid, null, null);
 
@@ -197,7 +221,7 @@ public class NewsArticle
             throw new ServerException();
         }
 
-        mNComment = Integer.parseInt(replyCounts.get(0).text());
+        mCommentSize = Integer.parseInt(replyCounts.get(0).text());
     }
 
     public NewsComment writeComment(String content) throws ServerException, InternalException

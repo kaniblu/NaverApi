@@ -47,10 +47,10 @@ public class Main
     {
         LogManager.getLogManager().reset();
 
-        AuthorizedConnection connection = null;
+        Connection connection = null;
 
         try {
-            connection = new AuthorizedConnection();
+            connection = new Connection();
             connection.requestCookies();
         } catch (Exception e) {
             writeln("Failed to initialize the connection.");
@@ -106,7 +106,7 @@ public class Main
                     NewsArticle article = null;
                     try {
                         article = new NewsArticle(connection, oidStr, aidStr);
-                        article.retrieveContent();
+                        article.retrieve();
                     } catch (Exception e) {
                         e.printStackTrace();
                         writeln("Encountered an error.");
@@ -187,7 +187,7 @@ public class Main
                         writeln(newsList.size() + " ranked news retrieved");
 
                         for (NewsArticle a : newsList) {
-                            writeln(a.getGno());
+                            writeln(a.getGno() + " / " + a.getTitle());
                         }
                     } catch (ServerException e) {
                         // TODO Auto-generated catch block
