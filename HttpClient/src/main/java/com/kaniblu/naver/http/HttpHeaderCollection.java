@@ -6,12 +6,15 @@ public class HttpHeaderCollection extends HashList<String, HttpHeader>
 {
     public void put(String key, String value)
     {
-        put(key, new HttpHeader(key, value));
+        if (key == null || value == null)
+            return;
+
+        put(key.toLowerCase().trim(), new HttpHeader(key, value));
     }
 
     public void put(HttpHeader header)
     {
-        put(header.getKey(), header);
+        put(header.getKey().toLowerCase().trim(), header);
     }
 
     public void putAll(Map<String, List<String>> headers)
@@ -24,9 +27,15 @@ public class HttpHeaderCollection extends HashList<String, HttpHeader>
         }
     }
 
+    @Override
+    public boolean containsKey(String key)
+    {
+        return super.containsKey(key.toLowerCase().trim());
+    }
+
     public List<HttpHeader> get(String key)
     {
-        return mMap.get(key);
+        return mMap.get(key.toLowerCase().trim());
     }
 
     public int size()
