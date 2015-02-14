@@ -15,11 +15,13 @@ public class HttpForm extends HashList<String, StringPair>
 
         try {
             for (StringPair pair : this)
-                content += URLEncoder.encode(pair.getFirst(), encoding) + "=" + URLEncoder.encode(pair.getSecond(), encoding);
+                content += URLEncoder.encode(pair.getFirst(), encoding) + "=" + URLEncoder.encode(pair.getSecond(), encoding) + "&";
         } catch (UnsupportedEncodingException e) {
             logger.log(Level.SEVERE, "Unrecognized encoding.", e);
             return null;
         }
+
+        content = content.substring(0, content.length() - 1);
 
         return content;
     }

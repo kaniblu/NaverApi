@@ -1,6 +1,10 @@
 package com.kaniblu.naver.test;
 
 import com.kaniblu.naver.api.*;
+import com.kaniblu.naver.http.HttpClient;
+import com.kaniblu.naver.http.HttpForm;
+import com.kaniblu.naver.http.HttpHeaderCollection;
+import com.kaniblu.naver.http.HttpResult;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -43,7 +47,12 @@ public class Main
         }
     }
 
-    public static void main(String[] args)
+    public static void main(String[] args) throws Exception
+    {
+        runShell();
+    }
+
+    public static void runShell()
     {
         LogManager.getLogManager().reset();
 
