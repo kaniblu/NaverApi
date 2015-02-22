@@ -1,6 +1,6 @@
 package com.kaniblu.naver.api;
 
-public class AuthRequiredException extends Exception
+public class AuthRequiredException extends NaverException
 {
     public AuthRequiredException()
     {

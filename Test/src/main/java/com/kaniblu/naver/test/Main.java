@@ -6,7 +6,12 @@ import com.kaniblu.naver.http.HttpForm;
 import com.kaniblu.naver.http.HttpHeaderCollection;
 import com.kaniblu.naver.http.HttpResult;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.LogManager;
@@ -186,13 +191,17 @@ public class Main
                     writeln("What date(YYYYMMDD) do you want to get?");
 
                     String date = read();
+
                     if (!date.matches("\\d{4}\\d{2}\\d{2}")) {
                         writeln("Wrong date format");
                         break;
                     }
 
+                    DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyyMMdd");
+                    DateTime dateTime = formatter.parseDateTime(date);
+
                     try {
-                        List<NewsArticle> newsList = NewsArticle.getDailyRankedNewsList(new Connection(), date);
+                        List<NewsArticle> newsList = NewsArticle.getDailyRankedNewsList(new Connection(), dateTime);
                         writeln(newsList.size() + " ranked news retrieved");
 
                         for (NewsArticle a : newsList) {

@@ -1,6 +1,6 @@
 package com.kaniblu.naver.api;
 
-public class InvalidLoginException extends Exception
+public class InvalidLoginException extends NaverException
 {
     public InvalidLoginException(String msg)
     {

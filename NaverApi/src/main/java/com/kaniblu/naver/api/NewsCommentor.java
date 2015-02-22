@@ -15,6 +15,21 @@ public class NewsCommentor
     protected String mUsername;
     protected Type mType;
 
+    public String getHashed()
+    {
+        return mHashed;
+    }
+
+    public String getUsername()
+    {
+        return mUsername;
+    }
+
+    public Type getType()
+    {
+        return mType;
+    }
+
     public NewsCommentor()
     {
 

@@ -12,9 +12,13 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -39,6 +43,13 @@ public class NewsArticle
         mAid = aid;
     }
 
+    public List<URL> getImageURLs()
+    {
+        return mImageURLs;
+    }
+
+    protected List<URL> mImageURLs = new ArrayList<URL>();
+    protected Map<URL, String> mImageCaptions = new HashMap<URL, String>();
     protected Connection mConnection;
     protected String mOid;
     protected String mAid;
@@ -109,9 +120,13 @@ public class NewsArticle
 
     }
 
-    public static List<NewsArticle> getDailyRankedNewsList(Connection connection, String date) throws ServerException
+    public static List<NewsArticle> getDailyRankedNewsList(Connection connection, DateTime date) throws ServerException
     {
-        HttpResult result = connection.requestGet("http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date=" + date, null, null);
+        if (date == null)
+            date = DateTime.now();
+
+        String dateString = String.format("%04d%02d%02d", date.getYear(), date.getMonthOfYear(), date.getDayOfMonth());
+        HttpResult result = connection.requestGet("http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date=" + dateString, null, null);
 
         if (result == null || !result.isStatusOk() || !result.hasContent()) {
             logger.log(Level.SEVERE, "Could not contact the server, or the server returned an error.");
@@ -144,12 +159,12 @@ public class NewsArticle
 
             Matcher matcher = aidPattern.matcher(href);
             if (matcher.find()) {
-                aid = matcher.group();
+                aid = matcher.group(1);
             }
 
             matcher = oidPattern.matcher(href);
             if (matcher.find()) {
-                oid = matcher.group();
+                oid = matcher.group(1);
             }
 
             if (aid != "" && oid != "") {
@@ -182,6 +197,23 @@ public class NewsArticle
         }
 
         mContent = divs.get(0).text().trim();
+
+        Elements imageTags = divs.select("img");
+
+        for (Element element : imageTags) {
+            if (!element.hasAttr("src"))
+                continue;
+
+            //TODO: get captions
+
+            try {
+                URL imageURL = new URL(element.attr("src"));
+                mImageURLs.add(imageURL);
+            } catch (MalformedURLException e) {
+                logger.warning("Malformed url in img src.");
+                continue;
+            }
+        }
 
         divs = doc.select("h3[id=articleTitle]");
 

@@ -1,6 +1,6 @@
 package com.kaniblu.naver.api;
 
-public class InternalException extends Exception
+public class InternalException extends NaverException
 {
     public InternalException()
     {
