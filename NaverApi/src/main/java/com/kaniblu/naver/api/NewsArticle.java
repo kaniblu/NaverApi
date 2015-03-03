@@ -10,6 +10,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
 import java.net.MalformedURLException;
@@ -26,6 +27,7 @@ import java.util.regex.Pattern;
 
 public class NewsArticle
 {
+    private static final DateTimeFormatter DAILYRANK_TIMESTAMP_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
     private static final Logger logger = Logger.getLogger(NewsArticle.class.getCanonicalName());
 
     public void setConnection(Connection connection)
@@ -48,6 +50,17 @@ public class NewsArticle
         return mImageURLs;
     }
 
+    public boolean hasImages()
+    {
+        return mHasImages;
+    }
+
+    public void setHasImages(boolean hasImages)
+    {
+        mHasImages = hasImages;
+    }
+
+    protected boolean mHasImages = false;
     protected List<URL> mImageURLs = new ArrayList<URL>();
     protected Map<URL, String> mImageCaptions = new HashMap<URL, String>();
     protected Connection mConnection;
@@ -57,6 +70,28 @@ public class NewsArticle
     protected DateTime mTimestamp;
     protected int mCommentSize;
     protected String mTitle;
+    protected String mPress;
+    protected String mCategory;
+
+    public String getCategory()
+    {
+        return mCategory;
+    }
+
+    public void setCategory(String category)
+    {
+        mCategory = category;
+    }
+
+    public String getPress()
+    {
+        return mPress;
+    }
+
+    public void setPress(String press)
+    {
+        mPress = press;
+    }
 
     public void setTitle(String title)
     {
@@ -108,6 +143,14 @@ public class NewsArticle
         return mCommentSize;
     }
 
+    public String getImageCaption(URL url)
+    {
+        if (mImageCaptions.containsKey(url))
+            return mImageCaptions.get(url);
+        else
+            return null;
+    }
+
     public NewsArticle(Connection connection, String oid, String aid)
     {
         mConnection = connection;
@@ -135,8 +178,8 @@ public class NewsArticle
 
         Document doc = Jsoup.parse(result.getContentAsString());
 
-        Elements rank = doc.select("div.ranking_top3 > ol > li > dl > dt > a");
-        Elements rankOthers = doc.select("ol.all_ranking > li > dl > dt > a");
+        Elements rank = doc.select("div.ranking_top3 > ol > li > dl");
+        Elements rankOthers = doc.select("ol.all_ranking > li > dl > dt");
 
         if (rank == null || rankOthers == null || rank.isEmpty() || rankOthers.isEmpty()) {
             logger.log(Level.SEVERE, "Unable to parse daily ranked news article page.");
@@ -151,8 +194,41 @@ public class NewsArticle
         Pattern oidPattern = Pattern.compile("oid=([^&]+)");
 
         for (Element e : rank) {
-            String href = e.attr("href");
-            String title = e.text().trim();
+            boolean hasImages = false;
+            String press = null;
+            DateTime timestamp = null;
+
+            Elements links = e.select("a");
+
+            if (links.size() <= 0) {
+                logger.info("No link found in news item.");
+                continue;
+            }
+
+            Elements imgIcons = e.select("img[alt=포토]");
+
+            if (imgIcons.size() > 0)
+                hasImages = true;
+
+            Elements iconSpans = e.select("span[class=ico]");
+
+            if (iconSpans.size() > 0) {
+                Element iconSpan = iconSpans.get(0);
+                Element pressSpan = iconSpan.parent();
+                press = pressSpan.text().trim();
+            }
+
+            Elements dateSpans = e.select("span[class=num]");
+
+            if (dateSpans.size() > 0) {
+                Element dateSpan = dateSpans.get(0);
+                timestamp = DAILYRANK_TIMESTAMP_FORMAT.parseDateTime(dateSpan.text().trim());
+            }
+
+            Element link = links.get(0);
+
+            String href = link.attr("href");
+            String title = link.text().trim();
 
             String aid = "";
             String oid = "";
@@ -170,6 +246,10 @@ public class NewsArticle
             if (aid != "" && oid != "") {
                 NewsArticle article = new NewsArticle(connection, oid, aid);
                 article.setTitle(title);
+                article.setHasImages(hasImages);
+                article.setPress(press);
+                article.setTimestamp(timestamp);
+
                 rankedNewsList.add(article);
             } else {
                 logger.log(Level.SEVERE, "Unable to parse aid, oid from news article href.");
@@ -196,7 +276,15 @@ public class NewsArticle
             throw new ServerException();
         }
 
-        mContent = divs.get(0).text().trim();
+        mContent = "";
+
+        for (TextNode text : divs.get(0).textNodes()) {
+            String str = text.getWholeText().trim();
+            if (str != null && str.length() > 0)
+                mContent += str + "\n";
+        }
+
+        mContent.trim();
 
         Elements imageTags = divs.select("img");
 
@@ -204,14 +292,27 @@ public class NewsArticle
             if (!element.hasAttr("src"))
                 continue;
 
-            //TODO: get captions
+            String caption = null;
+
+            Element table = element;
+
+            while (table != null && !table.tagName().equals("table"))
+                table = table.parent();
+
+            if (table == null)
+                logger.info("No image caption exists.");
+            else
+                caption = table.text().trim();
 
             try {
                 URL imageURL = new URL(element.attr("src"));
+
+                if (caption != null)
+                    mImageCaptions.put(imageURL, caption);
+
                 mImageURLs.add(imageURL);
             } catch (MalformedURLException e) {
                 logger.warning("Malformed url in img src.");
-                continue;
             }
         }
 
