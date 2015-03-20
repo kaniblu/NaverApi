@@ -62,6 +62,13 @@ public class NewsArticle
 
     protected boolean mHasImages = false;
     protected List<URL> mImageURLs = new ArrayList<URL>();
+    protected List<String> mHighlights = new ArrayList<String>();
+
+    public List<String> getHighlights()
+    {
+        return mHighlights;
+    }
+
     protected Map<URL, String> mImageCaptions = new HashMap<URL, String>();
     protected Connection mConnection;
     protected String mOid;
@@ -278,10 +285,17 @@ public class NewsArticle
 
         mContent = "";
 
+        boolean isPotentiallyHighlight = true;
         for (TextNode text : divs.get(0).textNodes()) {
             String str = text.getWholeText().trim();
-            if (str != null && str.length() > 0)
-                mContent += str + "\n";
+            if (str != null && str.length() > 0) {
+                if (isPotentiallyHighlight && (str.charAt(str.length() - 1) != '.' && str.charAt(str.length() - 1) != ']'))
+                    mHighlights.add(str);
+                else {
+                    isPotentiallyHighlight = false;
+                    mContent += str + "\n";
+                }
+            }
         }
 
         mContent.trim();

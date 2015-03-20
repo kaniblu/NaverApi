@@ -109,6 +109,7 @@ public class Connection
     protected String mUsername;
     protected String mPassword;
     protected KeySet mKeySet;
+    protected boolean mLoggedIn;
     protected CookieCollection mCookies = new CookieCollection();
 
     public Connection()
@@ -415,6 +416,11 @@ public class Connection
         return encrypt;
     }
 
+    public boolean isLoggedIn()
+    {
+        return mLoggedIn;
+    }
+
     protected void requestLogin() throws InternalException, InvalidLoginException, ServerException
     {
         HttpHeaderCollection header = generateLoginRequestHeader();
@@ -433,6 +439,8 @@ public class Connection
 
         if (mCookies.contains("NID_SES") && mCookies.contains("NID_AUT")) {
             logger.log(Level.INFO, "Login was successful.");
+            mLoggedIn = true;
+
             return;
         }
 
