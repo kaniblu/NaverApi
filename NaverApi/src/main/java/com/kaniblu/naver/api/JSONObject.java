@@ -81,4 +81,10 @@ public class JSONObject
             return null;
         }
     }
+
+    @Override
+    public String toString()
+    {
+        return mObject.toString();
+    }
 }

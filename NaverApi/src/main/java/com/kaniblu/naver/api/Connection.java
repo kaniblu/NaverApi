@@ -1,6 +1,7 @@
 package com.kaniblu.naver.api;
 
 import com.kaniblu.naver.http.*;
+import com.sun.corba.se.spi.activation.Server;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -68,6 +69,7 @@ public class Connection
             }
 
             mData.put(cookie.key, cookie);
+            mList.add(cookie);
         }
 
         public boolean contains(String key)
@@ -328,6 +330,7 @@ public class Connection
         if (object.has("result")) {
             return object.getJSONObject("result");
         } else if (object.has("error")) {
+            object = object.getJSONObject("error");
             if (!object.has("code")) {
                 logger.log(Level.SEVERE, "Unexpected absence of 'code' key in 'error'");
                 throw new InternalException();
@@ -468,6 +471,18 @@ public class Connection
         if (result.getStatusCode() / 100 != 2) {
             logger.log(Level.SEVERE, "Naver is not available.");
             throw new InternalException("Naver is not available.");
+        }
+    }
+
+    public JSONObject authCheck() throws InternalException, ServerException
+    {
+        HttpHeaderCollection header = new HttpHeaderCollection();
+
+        try {
+            return requestJson(HttpClient.Method.POST, "http://comment.news.naver.com/api/authCheck.json", header, null);
+        } catch (JSONErrorException e) {
+            logger.log(Level.WARNING, "AuthCheck returned malformed json.", e);
+            throw new ServerException(e.getMsg());
         }
     }
 

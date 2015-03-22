@@ -100,12 +100,13 @@ public class Main
             writeln("3. Write a comment");
             writeln("4. Delete a comment");
             writeln("5. Get daily news list");
-            write("Your choice? [1-5]: ");
+            writeln("6. AuthCheck");
+            write("Your choice? [1-6]: ");
 
             Integer choice = tryParseInt(read());
 
-            if (choice == null || choice < 1 || choice > 5) {
-                writeln("Choose a number between 1 to 5.");
+            if (choice == null || choice < 1 || choice > 6) {
+                writeln("Choose a number between 1 to 6.");
                 continue;
             }
 
@@ -212,6 +213,21 @@ public class Main
                         writeln("An exception occurred.");
                         e.printStackTrace();
                         break;
+                    }
+
+                    break;
+                case 6:
+                    writeln("Trying to send an AuthCheck POST.");
+
+                    try {
+                        JSONObject object = connection.authCheck();
+                        writeln(object.toString());
+                    } catch (ServerException e) {
+                        writeln("A server error occurred.");
+                        e.printStackTrace();
+                    } catch (InternalException e) {
+                        writeln("An internal error occurred.");
+                        e.printStackTrace();
                     }
 
                     break;

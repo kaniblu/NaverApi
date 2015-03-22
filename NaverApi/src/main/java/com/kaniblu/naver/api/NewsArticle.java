@@ -379,21 +379,22 @@ public class NewsArticle
         header.put("charset", "utf-8");
         header.put("Host", "comment.news.naver.com");
         header.put("Origin", "http://comment.news.naver.com");
-        header.put("Referer", "http://comment.news.naver.com/comment/main.nhn?nsc=news.reply&gno=news001,000723323k8&serviceId=news");
+        header.put("Referer", "http://comment.news.naver.com");
 
         HttpForm formContent = new HttpForm();
         formContent.put("content", content);
         formContent.put("gno", gno);
         formContent.put("serviceId", "news");
         formContent.put("incomingType", "pc");
+        formContent.put("validateBanWords", "true");
 
         JSONObject object = null;
 
         try {
-            object = mConnection.requestJsonPost("http://m.news.naver.com/api/comment/write.json", header, formContent);
+            object = mConnection.requestJsonPost("http://comment.news.naver.com/api/comment/write.json", header, formContent);
         } catch (JSONErrorException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
-            throw new ServerException();
+            logger.log(Level.SEVERE, "Unexpected json error.", e);
+            throw new ServerException(e.getMessage());
         }
 
         if (!object.has("commentReplies")) {
