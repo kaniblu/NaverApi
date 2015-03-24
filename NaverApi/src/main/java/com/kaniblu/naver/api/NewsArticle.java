@@ -337,23 +337,19 @@ public class NewsArticle
         makeHtmlTree(tree, divs.get(0).childNodes());
         mContent = StringUtil.join(tree, "");
         mContent = mContent.trim();
-        mContent = mContent.replace("\u00a0", "");
+        mContent = mContent.replace("\u00a0", "\n");
         mContent = mContent.replaceAll("\n{3,}", "\n\n");
         mContent = mContent.replaceAll("\n[ ]+", "\n");
 
         String[] strings = mContent.split("\n");
         for(int i = 0; i < strings.length; i++) {
-            String s = strings[i];
+            String s = strings[i].trim();
 
             if(s.equals("")) {
                 continue;
             }
 
-            String last = s;
-            if(s.length() > 2) {
-                last = s.substring(s.length()-2);
-            }
-            if(!last.matches("[a-zA-Z다].")) {
+            if(s.charAt(s.length() - 1) != '.' && s.charAt(s.length() - 1) != ']') {
                 mHighlights.add(s);
                 strings[i] = "";
             } else {
