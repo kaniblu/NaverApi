@@ -315,9 +315,14 @@ public class Connection
 
         try {
             object = new JSONObject(jsonContent);
-        } catch (JSONException e) {
-            logger.log(Level.SEVERE, "Failed to parse json content.");
-            throw new InternalException();
+        } catch (JSONException e2) {
+            jsonContent = jsonContent.replaceAll("^[a-zA-Z\\.0-9]+\\((.*)\\);$", "$1");
+            try {
+                object = new JSONObject(jsonContent);
+            } catch (JSONException e) {
+                logger.log(Level.SEVERE, "Failed to parse json content.");
+                throw new InternalException();
+            }
         }
 
         if (!object.has("message")) {
@@ -325,27 +330,33 @@ public class Connection
             throw new InternalException();
         }
 
-        object = object.getJSONObject("message");
+        if (object.getJSONObject("message") != null) {
+            object = object.getJSONObject("message");
+            if (object.has("result")) {
+                return object.getJSONObject("result");
+            } else if (object.has("error")) {
+                object = object.getJSONObject("error");
+                if (!object.has("code")) {
+                    logger.log(Level.SEVERE, "Unexpected absence of 'code' key in 'error'");
+                    throw new InternalException();
+                }
 
-        if (object.has("result")) {
+                if (!object.has("msg")) {
+                    logger.log(Level.SEVERE, "Unexpected absence of 'msg' key in 'error'");
+                    throw new InternalException();
+                }
+
+                String code = object.getString("code");
+                String msg = object.getString("msg");
+
+                logger.log(Level.INFO, "Server returned an error json message: " + code + "/" + msg);
+                throw new JSONErrorException(code, msg);
+            } else {
+                logger.log(Level.SEVERE, "Unrecognized json format.");
+                throw new ServerException();
+            }
+        } else if (object.getJSONObject("result") != null) {
             return object.getJSONObject("result");
-        } else if (object.has("error")) {
-            object = object.getJSONObject("error");
-            if (!object.has("code")) {
-                logger.log(Level.SEVERE, "Unexpected absence of 'code' key in 'error'");
-                throw new InternalException();
-            }
-
-            if (!object.has("msg")) {
-                logger.log(Level.SEVERE, "Unexpected absence of 'msg' key in 'error'");
-                throw new InternalException();
-            }
-
-            String code = object.getString("code");
-            String msg = object.getString("msg");
-
-            logger.log(Level.INFO, "Server returned an error json message: " + code + "/" + msg);
-            throw new JSONErrorException(code, msg);
         } else {
             logger.log(Level.SEVERE, "Unrecognized json format.");
             throw new ServerException();

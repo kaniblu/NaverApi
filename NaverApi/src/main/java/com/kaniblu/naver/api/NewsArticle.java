@@ -84,6 +84,17 @@ public class NewsArticle
     protected String mTitle;
     protected String mPress;
     protected String mCategory;
+    protected int mLikes;
+
+    public int getLikes()
+    {
+        return mLikes;
+    }
+
+    public void setLikes(int likes)
+    {
+        mLikes = likes;
+    }
 
     public String getCategory()
     {
@@ -431,6 +442,28 @@ public class NewsArticle
         mCommentSize = Integer.parseInt(replyCounts.get(0).text());
     }
 
+    public void retrieveLikeCount() throws ServerException, InternalException
+    {
+        String url = String.format("http://news.like.naver.com/likeIt/likeItContent.jsonp?serviceId=NEWS&displayId=NEWS&contentsId=ne_%s_%s&viewType=recommend", mOid, mAid);
+        JSONObject result = null;
+        try {
+            result = mConnection.requestJsonGet(url, null);
+        } catch (JSONErrorException e) {
+            logger.log(Level.SEVERE, "Json error detected during like count retrieval", e);
+            return;
+        }
+
+        JSONObject likeItContent = result.getJSONObject("likeItContent");
+
+        if (likeItContent == null) {
+            logger.log(Level.SEVERE, "Unexpected absence of likeitcontent.");
+            return;
+        }
+
+        int count = likeItContent.getInt("likeItCount");
+        mLikes = count;
+    }
+
     public NewsComment writeComment(String content) throws ServerException, InternalException
     {
         String gno = "news" + mOid + "," + mAid;
@@ -472,6 +505,45 @@ public class NewsArticle
         NewsComment comment = new NewsComment(mConnection, this, array.getJSONObject(0));
 
         return comment;
+    }
+
+    protected void requestLikeServer(String url, int expectedStatusCode) throws InternalException, ServerException
+    {
+        JSONObject result = null;
+
+        try {
+            result = mConnection.requestJsonGet(url, null);
+        } catch (JSONErrorException e) {
+            logger.log(Level.SEVERE, "unexpected json error", e);
+            return;
+        }
+
+        if (result.has("resultStatusCode") && result.getInt("resultStatusCode") == expectedStatusCode) {
+            if (result.has("likeItCount"))
+                mLikes = result.getInt("likeItCount");
+            else if (result.has("contents")) {
+                JSONObject contentsObject = result.getJSONObject("contents");
+                if (contentsObject != null && contentsObject.has("likeItCount"))
+                    mLikes = contentsObject.getInt("likeItCount");
+            }
+
+            logger.log(Level.INFO, "like connection success.");
+        }
+        else {
+            logger.log(Level.WARNING, "like connection failed.");
+            throw new ServerException();
+        }
+    }
+    public void like(boolean shareTimeline) throws InternalException, ServerException
+    {
+        String url = String.format("http://news.like.naver.com/likeIt/v1/likeItContentAdd.jsonp?serviceId=NEWS&contentsId=ne_%s_%s&lang=ko&timeLineShare=%s", mOid, mAid, shareTimeline ? "Y" : "N");
+        requestLikeServer(url, 0);
+    }
+
+    public void cancelLike(boolean shareTimeline) throws InternalException, ServerException
+    {
+        String url = String.format("http://news.like.naver.com/likeIt/v1/unLikeItContent.jsonp?serviceId=NEWS&contentsId=ne_%s_%s&lang=ko&timeLineShare=%s", mOid, mAid, shareTimeline ? "Y" : "N");
+        requestLikeServer(url, 2003);
     }
 
     public List<NewsComment> getComments(int page, int pageSize, NewsComment.SortType sortType) throws InternalException, ServerException

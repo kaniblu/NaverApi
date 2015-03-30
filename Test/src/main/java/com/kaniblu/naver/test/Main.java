@@ -73,8 +73,13 @@ public class Main
         }
 
         while (true) {
+            writeln("Please login! (input empty string to skip)");
+
             write("Username: ");
             String username = read();
+
+            if (username.length() == 0)
+                break;
 
             write("Password: ");
             String password = read();
@@ -112,11 +117,18 @@ public class Main
 
             switch (choice) {
                 case 1:
-                    writeln("Enter the following parameters.");
+                    writeln("Enter the following parameters. (input empty string to open a default one)");
                     write("oid: ");
                     String oidStr = read();
-                    write("aid: ");
-                    String aidStr = read();
+                    String aidStr = null;
+
+                    if (oidStr.length() == 0) {
+                        oidStr = "008";
+                        aidStr = "0003426173";
+                    } else {
+                        write("aid: ");
+                        aidStr = read();
+                    }
 
                     NewsArticle article = null;
                     try {
@@ -135,8 +147,11 @@ public class Main
                         writeln("What to do with the article?");
                         writeln("1. write a comment.");
                         writeln("2. get all comments.");
-                        writeln("3. go back.");
-                        write("Your choice [1-3]: ");
+                        writeln("3. get like count.");
+                        writeln("4. like the article.");
+                        writeln("5. unlike the article.");
+                        writeln("6. go back.");
+                        write("Your choice [1-5]: ");
 
                         Integer result = tryParseInt(read());
 
@@ -157,7 +172,6 @@ public class Main
                                 try {
                                     article.writeComment(content);
                                 } catch (Exception e) {
-                                    e.printStackTrace();
                                     writeln("Encountered an error.");
                                     continue;
                                 }
@@ -171,7 +185,6 @@ public class Main
                                     comments = article.getComments(0, 9999, NewsComment.SortType.SCORE);
                                 } catch (Exception e) {
                                     writeln("An exception occurred.");
-                                    e.printStackTrace();
                                     continue;
                                 }
 
@@ -180,6 +193,36 @@ public class Main
 
                                 break;
                             case 3:
+                                try {
+                                    article.retrieveLikeCount();
+                                } catch (Exception e) {
+                                    writeln("An exception occurred.");
+                                    continue;
+                                }
+
+                                writeln("There are " + article.getLikes() + " likes.");
+                                break;
+                            case 4:
+                                try {
+                                    article.like(false);
+                                } catch (Exception e) {
+                                    writeln("An exception occurred.");
+                                    continue;
+                                }
+
+                                writeln("Like success: " + article.getLikes() + " likes.");
+                                break;
+                            case 5:
+                                try {
+                                    article.cancelLike(false);
+                                } catch (Exception e) {
+                                    writeln("An exception occurred.");
+                                    continue;
+                                }
+
+                                writeln("Unlike success: " + article.getLikes() + " likes.");
+                                break;
+                            case 6:
                                 innerloop = false;
                                 break;
                             default:
