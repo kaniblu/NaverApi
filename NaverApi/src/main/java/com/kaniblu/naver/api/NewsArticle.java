@@ -8,18 +8,16 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.jsoup.Jsoup;
+import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -29,6 +27,13 @@ public class NewsArticle
 {
     private static final DateTimeFormatter DAILYRANK_TIMESTAMP_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
     private static final Logger logger = Logger.getLogger(NewsArticle.class.getCanonicalName());
+
+    private static final String EXCLUDE_TAG = "table";
+    private static final String INCLUDE_TAG = "b,i,a";
+    private static final String LINE_SPLIT_TAG = "p,hr,br";
+    private Set<String> excludeTag;
+    private Set<String> includeTag;
+    private Set<String> lineSplitTag;
 
     public void setConnection(Connection connection)
     {
@@ -266,6 +271,51 @@ public class NewsArticle
         return rankedNewsList;
     }
 
+    public void makeHtmlTree(List<String> tree, List<Node> nodes) {
+        if(excludeTag == null) {
+            excludeTag = new HashSet<String>();
+            for(String s : EXCLUDE_TAG.split(",")) {
+                excludeTag.add(s);
+            }
+        }
+
+        if(includeTag == null) {
+            includeTag = new HashSet<String>();
+            for(String s : INCLUDE_TAG.split(",")) {
+                includeTag.add(s);
+            }
+        }
+
+        if(lineSplitTag == null) {
+            lineSplitTag = new HashSet<String>();
+            for (String s : LINE_SPLIT_TAG.split(",")) {
+                lineSplitTag.add(s);
+            }
+        }
+
+        for(Node node : nodes) {
+            if(node instanceof Element) {
+                Element e = (Element) node;
+
+                if(!excludeTag.contains(e.tagName())) {
+                    if(lineSplitTag.contains(e.tagName())) {
+                        tree.add("\n");
+                        makeHtmlTree(tree, e.childNodes());
+                    } else if(includeTag.contains(e.tagName())) {
+                        tree.add("<" + e.tagName() + ">");
+                        makeHtmlTree(tree, e.childNodes());
+                        tree.add("</" + e.tagName() + ">");
+                    } else {
+                        makeHtmlTree(tree, e.childNodes());
+                    }
+                }
+            } else if(node instanceof TextNode) {
+                TextNode t = (TextNode) node;
+                tree.add(t.getWholeText().replaceAll("[\t\r]", ""));
+            }
+        }
+    }
+
     public void retrieve() throws ServerException, InternalException
     {
         HttpResult result = mConnection.requestGet("http://news.naver.com/main/read.nhn?oid=" + mOid + "&aid=" + mAid, null, null);
@@ -283,22 +333,32 @@ public class NewsArticle
             throw new ServerException();
         }
 
-        mContent = "";
+        List<String> tree = new ArrayList<String>();
+        makeHtmlTree(tree, divs.get(0).childNodes());
+        mContent = StringUtil.join(tree, "");
+        mContent = mContent.trim();
+        mContent = mContent.replace("\u00a0", "\n");
+        mContent = mContent.replaceAll("\n{3,}", "\n\n");
+        mContent = mContent.replaceAll("\n[ ]+", "\n");
 
-        boolean isPotentiallyHighlight = true;
-        for (TextNode text : divs.get(0).textNodes()) {
-            String str = text.getWholeText().trim();
-            if (str != null && str.length() > 0) {
-                if (isPotentiallyHighlight && (str.charAt(str.length() - 1) != '.' && str.charAt(str.length() - 1) != ']'))
-                    mHighlights.add(str);
-                else {
-                    isPotentiallyHighlight = false;
-                    mContent += str + "\n";
-                }
+        String[] strings = mContent.split("\n");
+        for(int i = 0; i < strings.length; i++) {
+            String s = strings[i].trim();
+
+            if(s.equals("")) {
+                continue;
+            }
+
+            if(s.charAt(s.length() - 1) != '.' && s.charAt(s.length() - 1) != ']') {
+                mHighlights.add(s);
+                strings[i] = "";
+            } else {
+                break;
             }
         }
 
-        mContent.trim();
+        mContent = StringUtil.join(Arrays.asList(strings), "\n");
+        mContent = mContent.trim();
 
         Elements imageTags = divs.select("img");
 
