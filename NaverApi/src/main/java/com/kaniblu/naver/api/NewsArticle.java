@@ -580,7 +580,7 @@ public class NewsArticle
         try {
             object = mConnection.requestJsonPost("http://comment.news.naver.com/api/comment/list.json", null, formContent);
         } catch (JSONErrorException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.SEVERE, "Unexpected json error.", e);
             throw new InternalException();
         }
 

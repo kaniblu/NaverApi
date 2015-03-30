@@ -26,7 +26,7 @@ public class JSONObject
         try {
             return new JSONObject(mObject.getJSONObject(s));
         } catch (JSONException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.INFO, String.format("Key '%s' not found.", s));
             return null;
         }
     }
@@ -36,7 +36,7 @@ public class JSONObject
         try {
             return new JSONArray(mObject.getJSONArray(s));
         } catch (JSONException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.INFO, String.format("Key '%s' not found.", s));
             return null;
         }
     }
@@ -50,7 +50,7 @@ public class JSONObject
         try {
             return mObject.getString(key);
         } catch(JSONException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.INFO, String.format("Key '%s' not found.", key));
             return null;
         }
     }
@@ -59,7 +59,7 @@ public class JSONObject
         try {
             return mObject.getLong(key);
         } catch(JSONException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.INFO, String.format("Key '%s' not found.", key));
             return null;
         }
     }
@@ -68,7 +68,7 @@ public class JSONObject
         try {
             return mObject.getInt(key);
         } catch(JSONException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.INFO, String.format("Key '%s' not found.", key));
             return null;
         }
     }
@@ -77,7 +77,7 @@ public class JSONObject
         try {
             return mObject.getBoolean(key);
         } catch(JSONException e) {
-            logger.log(Level.SEVERE, "Unexpected json error.");
+            logger.log(Level.INFO, String.format("Key '%s' not found.", key));
             return null;
         }
     }
