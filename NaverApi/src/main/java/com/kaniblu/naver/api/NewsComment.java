@@ -84,7 +84,8 @@ public class NewsComment
         HttpForm form = new HttpForm();
         form.put("commentNo", String.valueOf(mId));
         form.put("gno", mArticle.getGno());
-        form.put("pageSize", "0");
+        form.put("pageSize", String.valueOf(pageSize));
+        form.put("page", String.valueOf(page));
         form.put("serviceId", "news");
 
         JSONObject object = null;
@@ -101,7 +102,7 @@ public class NewsComment
 
     public void retrieve() throws InternalException, ServerException
     {
-        JSONObject object = requestReplies(0, 0, SortType.SCORE);
+        JSONObject object = requestReplies(1, 1, SortType.SCORE);
 
         if (!object.has("parentComment")) {
             logger.log(Level.SEVERE, "Unexpected absence of parentComment.");

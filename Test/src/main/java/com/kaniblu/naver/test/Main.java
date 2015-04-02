@@ -231,6 +231,45 @@ public class Main
                         }
                     }
                     break;
+                case 2:
+                    String oid = null;
+                    String aid = null;
+                    Integer commentId = null;
+
+                    writeln("Enter following information (input empty string to use default)");
+                    write("Oid: ");
+
+                    oid = read();
+
+                    if (oid.length() == 0) {
+                        oid = "008";
+                        aid = "0003426173";
+                        commentId = 1199273;
+                    } else {
+
+                        write("Aid: ");
+                        aid = read();
+
+                        write("Comment Id: ");
+                        commentId = Integer.valueOf(read());
+                    }
+
+                    NewsArticle art = new NewsArticle(connection, oid, aid);
+                    NewsComment comment = new NewsComment(connection, art, commentId);
+                    List<NewsComment> commentReplies = null;
+                    try {
+                        comment.retrieve();
+                        commentReplies = comment.getComments(1, 20, NewsComment.SortType.SCORE);
+                    } catch (Exception e) {
+                        writeln("An exception occurred.");
+                        continue;
+                    }
+
+                    writeln(comment.getContent());
+                    for (NewsComment c : commentReplies)
+                        writeln(c.getContent());
+
+                    break;
                 case 5:
                     writeln("What date(YYYYMMDD) do you want to get?");
 
