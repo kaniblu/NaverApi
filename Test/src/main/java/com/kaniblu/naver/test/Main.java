@@ -1,280 +1,239 @@
 package com.kaniblu.naver.test;
 
 import com.kaniblu.naver.api.*;
-import com.kaniblu.naver.http.HttpClient;
-import com.kaniblu.naver.http.HttpForm;
-import com.kaniblu.naver.http.HttpHeaderCollection;
-import com.kaniblu.naver.http.HttpResult;
 
+import com.kaniblu.naver.api.news.Article;
+import com.kaniblu.naver.api.news.comment.Comment;
+import com.kaniblu.naver.api.news.comment.SortType;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.LogManager;
 
 public class Main
 {
-    private static final byte[] BUFFER = new byte[1024];
-
-    public static String read()
-    {
-        int read = 0;
-        try {
-            read = System.in.read(BUFFER);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-        return new String(BUFFER, 0, read > 0 ? read - 1 : read).trim();
-    }
-
-    public static void writeln(String msg)
-    {
-        System.out.println(msg);
-    }
-
-    public static void write(String msg)
-    {
-        System.out.print(msg);
-    }
-
-    public static Integer tryParseInt(String str)
-    {
-        try {
-            return Integer.parseInt(str);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
     public static void main(String[] args) throws Exception
-    {
-        runShell();
-    }
-
-    public static void runShell()
     {
         LogManager.getLogManager().reset();
 
-        Connection connection = null;
+        final Console c = new Console();
+        final Connection connection = new Connection();
+        connection.requestCookies();
 
-        try {
-            connection = new Connection();
-            connection.requestCookies();
-        } catch (Exception e) {
-            writeln("Failed to initialize the connection.");
-            writeln("Terminating...");
-            return;
-        }
+        InteractiveConsole.OnMenuSelectedListener topLevelListener = new InteractiveConsole.OnMenuSelectedListener()
+        {
+            @Override
+            public boolean onMenuSelected(Console console, int id)
+            {
+                try {
+                    switch (id) {
+                        case 1:
+                            console.writeln("Enter the following parameters. (input empty string to open a default one)");
+                            console.write("oid: ");
+                            String oidStr = console.read();
+                            String aidStr = null;
 
-        while (true) {
-            writeln("Please login! (input empty string to skip)");
+                            if (oidStr.length() == 0) {
+                                oidStr = "008";
+                                aidStr = "0003426173";
+                            } else {
+                                console.write("aid: ");
+                                aidStr = console.read();
+                            }
 
-            write("Username: ");
-            String username = read();
+                            final Article article = new Article(connection, oidStr, aidStr);
+                            article.retrieve();
 
-            if (username.length() == 0)
-                break;
+                            console.writeln(article.getContent());
 
-            write("Password: ");
-            String password = read();
+                            InteractiveConsole.OnMenuSelectedListener articleMenuListener = new InteractiveConsole.OnMenuSelectedListener()
+                            {
+                                @Override
+                                public boolean onMenuSelected(Console console, int index)
+                                {
+                                    try {
+                                        switch (index) {
+                                            case 1:
+                                                console.writeln("Enter the following parameters.");
+                                                console.write("content: ");
 
-            connection.setPassword(password);
-            connection.setUsername(username);
+                                                String content = console.read();
 
-            try {
-                connection.login();
-            } catch (Exception e) {
-                e.printStackTrace();
-                writeln("Try again.");
-                continue;
+                                                Comment writtenComment = article.writeComment(content);
+
+                                                console.writeln("Comment was successfully written.");
+
+                                                return true;
+                                            case 2:
+                                                List<Comment> comments = null;
+
+                                                comments = article.getComments(0, 9999, SortType.SCORE);
+
+                                                for (Comment comment : comments)
+                                                    console.writeln("(" + comment.getNUp() + "/" + comment.getNDown() + ")" + comment.getContent());
+
+                                                return true;
+                                            case 3:
+                                                article.retrieveLikeCount();
+                                                console.writeln("There are " + article.getLikes() + " likes.");
+                                                return true;
+                                            case 4:
+                                                article.like(false);
+                                                console.writeln("Like success: " + article.getLikes() + " likes.");
+                                                return true;
+                                            case 5:
+                                                article.cancelLike(false);
+
+                                                console.writeln("Unlike success: " + article.getLikes() + " likes.");
+                                                return true;
+                                            default:
+                                                return true;
+                                        }
+                                    } catch (Exception e) {
+                                        console.writeln("An exception occurred.");
+                                        return true;
+                                    }
+                                }
+                            };
+                            InteractiveConsole articleConsole = new InteractiveConsole();
+                            articleConsole.setHeaderTitle("What to do with the article?");
+                            articleConsole.addMenu(1, "Write a comment.", articleMenuListener);
+                            articleConsole.addMenu(2, "Get all comments.", articleMenuListener);
+                            articleConsole.addMenu(3, "Get like count.", articleMenuListener);
+                            articleConsole.addMenu(4, "Like the article.", articleMenuListener);
+                            articleConsole.addMenu(5, "Unlike the article.", articleMenuListener);
+                            articleConsole.run();
+
+                            return true;
+                        case 2:
+                            String oid = null;
+                            String aid = null;
+                            Integer commentId = null;
+
+                            console.writeln("Enter following information (input empty string to use default)");
+                            console.write("Oid: ");
+
+                            oid = console.read();
+
+                            if (oid.length() == 0) {
+                                oid = "008";
+                                aid = "0003426173";
+                                commentId = 1199273;
+                            } else {
+
+                                console.write("Aid: ");
+                                aid = console.read();
+
+                                console.write("Comment Id: ");
+                                commentId = Integer.valueOf(console.read());
+                            }
+
+                            Article art = new Article(connection, oid, aid);
+                            Comment comment = new Comment(connection, art, commentId);
+                            List<Comment> commentReplies = null;
+                            try {
+                                comment.retrieve();
+                                commentReplies = comment.getComments(1, 20, SortType.SCORE);
+                            } catch (Exception e) {
+                                console.writeln("An exception occurred.");
+                                return true;
+                            }
+
+                            console.writeln(comment.getContent());
+                            for (Comment c : commentReplies)
+                                console.writeln(c.getContent());
+
+                            return true;
+                        case 3:
+                            console.writeln("What date(YYYYMMDD) do you want to get?");
+
+                            String date = console.read();
+
+                            if (!date.matches("\\d{4}\\d{2}\\d{2}")) {
+                                console.writeln("Wrong date format");
+                                break;
+                            }
+
+                            DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyyMMdd");
+                            DateTime dateTime = formatter.parseDateTime(date);
+
+                            List<Article> newsList = Article.getDailyRankedNewsList(new Connection(), dateTime);
+                            console.writeln(newsList.size() + " ranked news retrieved");
+
+                            for (Article a : newsList) {
+                                console.writeln(a.getGno() + " / " + a.getTitle());
+                            }
+
+                            return true;
+                        case 4:
+                            console.writeln("Retrieving current user info.");
+
+                            User user = new User(connection);
+                            user.retrieve();
+
+                            console.writeln("Current user is " + (user.isLoggedIn() ? "" : "not ") + "logged in.");
+
+                            if (user.isLoggedIn()) {
+                                console.writeln("Username: " + user.getUsername());
+                                console.writeln("Encoded Username: " + user.getEncodedUsername());
+                                console.writeln("Nickname: " + user.getNickname());
+                                console.writeln("User type: " + user.getType());
+                                console.writeln("Is comment writable?: " + user.isCommentWritable());
+                                console.writeln("Is using real name?: " + user.isNameReal());
+                            }
+
+                            return true;
+                        case 5:
+                            c.write("Username: ");
+                            String username = c.read();
+
+                            c.write("Password: ");
+                            String password = c.readPw();
+
+                            connection.setPassword(password);
+                            connection.setUsername(username);
+                            connection.login();
+
+                            c.writeln("Login success!");
+
+                            return true;
+                        case 6:
+                            c.writeln("Logging out...");
+                            connection.logout();
+
+                            return true;
+                        case 7:
+                            c.writeln("Retrieving all comments posted by the user...");
+                            user = new User(connection);
+                            List<Comment> comments = user.getComments(1, 20, SortType.SCORE);
+
+                            for (Comment comm : comments)
+                                c.writeln(String.format("[%s] (%d/%d) %s", comm.getArticle().getGno(), comm.getNUp(), comm.getNDown(), comm.getContent()));
+
+                            return true;
+                        default:
+                            return true;
+                    }
+                } catch (Exception e) {
+                    console.writeln("An exception occurred.");
+                    return true;
+                }
+                return true;
             }
-            writeln("Login success!");
-            break;
-        }
+        };
 
-        while (true) {
-            writeln("Choose a task: ");
-            writeln("1. Read an article");
-            writeln("2. Read a comment");
-            writeln("3. Write a comment");
-            writeln("4. Delete a comment");
-            writeln("5. Get daily news list");
-            writeln("6. AuthCheck");
-            write("Your choice? [1-6]: ");
-
-            Integer choice = tryParseInt(read());
-
-            if (choice == null || choice < 1 || choice > 6) {
-                writeln("Choose a number between 1 to 6.");
-                continue;
-            }
-
-            switch (choice) {
-                case 1:
-                    writeln("Enter the following parameters. (input empty string to open a default one)");
-                    write("oid: ");
-                    String oidStr = read();
-                    String aidStr = null;
-
-                    if (oidStr.length() == 0) {
-                        oidStr = "008";
-                        aidStr = "0003426173";
-                    } else {
-                        write("aid: ");
-                        aidStr = read();
-                    }
-
-                    NewsArticle article = null;
-                    try {
-                        article = new NewsArticle(connection, oidStr, aidStr);
-                        article.retrieve();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        writeln("Encountered an error.");
-                        continue;
-                    }
-
-                    writeln(article.getContent());
-
-                    boolean innerloop = true;
-                    while (innerloop) {
-                        writeln("What to do with the article?");
-                        writeln("1. write a comment.");
-                        writeln("2. get all comments.");
-                        writeln("3. get like count.");
-                        writeln("4. like the article.");
-                        writeln("5. unlike the article.");
-                        writeln("6. go back.");
-                        write("Your choice [1-5]: ");
-
-                        Integer result = tryParseInt(read());
-
-                        if (result == null) {
-                            writeln("Try again.");
-                            continue;
-                        }
-
-                        switch (result) {
-                            case 1:
-                                writeln("Enter the following parameters.");
-                                write("content: ");
-
-                                String content = read();
-
-                                NewsComment writtenComment = null;
-
-                                try {
-                                    article.writeComment(content);
-                                } catch (Exception e) {
-                                    writeln("Encountered an error.");
-                                    continue;
-                                }
-
-                                writeln("Comment was successfully written.");
-                                break;
-                            case 2:
-                                List<NewsComment> comments = null;
-
-                                try {
-                                    comments = article.getComments(0, 9999, NewsComment.SortType.SCORE);
-                                } catch (Exception e) {
-                                    writeln("An exception occurred.");
-                                    continue;
-                                }
-
-                                for (NewsComment comment : comments)
-                                    writeln("(" + comment.getNUp() + "/" + comment.getNDown() + ")" + comment.getContent());
-
-                                break;
-                            case 3:
-                                try {
-                                    article.retrieveLikeCount();
-                                } catch (Exception e) {
-                                    writeln("An exception occurred.");
-                                    continue;
-                                }
-
-                                writeln("There are " + article.getLikes() + " likes.");
-                                break;
-                            case 4:
-                                try {
-                                    article.like(false);
-                                } catch (Exception e) {
-                                    writeln("An exception occurred.");
-                                    continue;
-                                }
-
-                                writeln("Like success: " + article.getLikes() + " likes.");
-                                break;
-                            case 5:
-                                try {
-                                    article.cancelLike(false);
-                                } catch (Exception e) {
-                                    writeln("An exception occurred.");
-                                    continue;
-                                }
-
-                                writeln("Unlike success: " + article.getLikes() + " likes.");
-                                break;
-                            case 6:
-                                innerloop = false;
-                                break;
-                            default:
-                                writeln("Unknown option.");
-                                break;
-                        }
-                    }
-                    break;
-                case 5:
-                    writeln("What date(YYYYMMDD) do you want to get?");
-
-                    String date = read();
-
-                    if (!date.matches("\\d{4}\\d{2}\\d{2}")) {
-                        writeln("Wrong date format");
-                        break;
-                    }
-
-                    DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyyMMdd");
-                    DateTime dateTime = formatter.parseDateTime(date);
-
-                    try {
-                        List<NewsArticle> newsList = NewsArticle.getDailyRankedNewsList(new Connection(), dateTime);
-                        writeln(newsList.size() + " ranked news retrieved");
-
-                        for (NewsArticle a : newsList) {
-                            writeln(a.getGno() + " / " + a.getTitle());
-                        }
-                    } catch (ServerException e) {
-                        // TODO Auto-generated catch block
-                        writeln("An exception occurred.");
-                        e.printStackTrace();
-                        break;
-                    }
-
-                    break;
-                case 6:
-                    writeln("Trying to send an AuthCheck POST.");
-
-                    try {
-                        JSONObject object = connection.authCheck();
-                        writeln(object.toString());
-                    } catch (ServerException e) {
-                        writeln("A server error occurred.");
-                        e.printStackTrace();
-                    } catch (InternalException e) {
-                        writeln("An internal error occurred.");
-                        e.printStackTrace();
-                    }
-
-                    break;
-            }
-        }
+        InteractiveConsole topLevel = new InteractiveConsole();
+        topLevel.addMenu(5, "Log in.", topLevelListener);
+        topLevel.addMenu(6, "Log out.", topLevelListener);
+        topLevel.addMenu(1, "Read an article.", topLevelListener);
+        topLevel.addMenu(2, "Read a comment.", topLevelListener);
+        topLevel.addMenu(3, "Retrieve daily popular news.", topLevelListener);
+        topLevel.addMenu(4, "Check user status.", topLevelListener);
+        topLevel.addMenu(7, "Get all comments posted by the user.", topLevelListener);
+        topLevel.run();
     }
 }
