@@ -7,6 +7,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -330,33 +331,36 @@ public class Connection
             throw new InternalException();
         }
 
-        if (object.getJSONObject("message") != null) {
+        try {
             object = object.getJSONObject("message");
-            if (object.has("result")) {
-                return object.getJSONObject("result");
-            } else if (object.has("error")) {
-                object = object.getJSONObject("error");
-                if (!object.has("code")) {
-                    logger.log(Level.SEVERE, "Unexpected absence of 'code' key in 'error'");
-                    throw new InternalException();
-                }
+        } catch (JSONException e) {
+            logger.log(Level.INFO, "Json response has string-type 'message' key.");
+        }
 
-                if (!object.has("msg")) {
-                    logger.log(Level.SEVERE, "Unexpected absence of 'msg' key in 'error'");
-                    throw new InternalException();
-                }
+        if (object == null) {
+            logger.log(Level.SEVERE, "Unexpected null object.");
+            throw new InternalException();
+        }
 
-                String code = object.getString("code");
-                String msg = object.getString("msg");
-
-                logger.log(Level.INFO, "Server returned an error json message: " + code + "/" + msg);
-                throw new JSONErrorException(code, msg);
-            } else {
-                logger.log(Level.SEVERE, "Unrecognized json format.");
-                throw new ServerException();
-            }
-        } else if (object.getJSONObject("result") != null) {
+        if (object.has("result")) {
             return object.getJSONObject("result");
+        } else if (object.has("error")) {
+            object = object.getJSONObject("error");
+            if (!object.has("code")) {
+                logger.log(Level.SEVERE, "Unexpected absence of 'code' key in 'error'");
+                throw new InternalException();
+            }
+
+            if (!object.has("msg")) {
+                logger.log(Level.SEVERE, "Unexpected absence of 'msg' key in 'error'");
+                throw new InternalException();
+            }
+
+            String code = object.getString("code");
+            String msg = object.getString("msg");
+
+            logger.log(Level.INFO, "Server returned an error json message: " + code + "/" + msg);
+            throw new JSONErrorException(code, msg);
         } else {
             logger.log(Level.SEVERE, "Unrecognized json format.");
             throw new ServerException();
@@ -485,16 +489,12 @@ public class Connection
         }
     }
 
-    public JSONObject authCheck() throws InternalException, ServerException
+    public void logout()
     {
-        HttpHeaderCollection header = new HttpHeaderCollection();
-
-        try {
-            return requestJson(HttpClient.Method.POST, "http://comment.news.naver.com/api/authCheck.json", header, null);
-        } catch (JSONErrorException e) {
-            logger.log(Level.WARNING, "AuthCheck returned malformed json.", e);
-            throw new ServerException(e.getMsg());
-        }
+        mUsername = null;
+        mPassword = null;
+        mCookies.remove("NID_SES");
+        mCookies.remove("NID_AUT");
     }
 
     protected static String getCharCode(String s)

@@ -1,32 +1,24 @@
-package com.kaniblu.naver.api;
+package com.kaniblu.naver.api.news.comment;
 
+import com.kaniblu.naver.api.*;
+import com.kaniblu.naver.api.news.Article;
 import com.kaniblu.naver.http.HttpForm;
 import com.kaniblu.naver.http.HttpResult;
 import org.joda.time.DateTime;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class NewsComment
+public class Comment
 {
-    private static final Logger logger = Logger.getLogger(NewsComment.class.getCanonicalName());
+    private static final Logger logger = Logger.getLogger(Comment.class.getCanonicalName());
 
-    public enum DeviceType
-    {
-        PC,
-        MOBILE,
-        TABLET
-    }
-
-    public enum SortType
-    {
-        SCORE,
-        DATE_ASC,
-        DATE_DESC,
-        NREPLY_DESC,
-    }
 
     public void setConnection(Connection connection)
     {
@@ -38,15 +30,15 @@ public class NewsComment
         mId = id;
     }
 
-    public void setArticle(NewsArticle article)
+    public void setArticle(Article article)
     {
         mArticle = article;
     }
 
     protected Connection mConnection;
     protected int mId;
-    protected NewsArticle mArticle;
-    protected NewsCommentor mCommentor;
+    protected Article mArticle;
+    protected User mCommentor;
     protected int mNReplies;
     protected DateTime mTimestamp;
     protected String mContent;
@@ -55,37 +47,78 @@ public class NewsComment
     protected int mNDown;
     protected DeviceType mDevice;
 
-    public NewsComment(Connection connection)
+    public Comment(Connection connection)
     {
         mConnection = connection;
     }
 
-    protected NewsComment()
+    protected Comment()
     {
 
     }
 
-    public NewsComment(Connection connection, NewsArticle article, int id)
+    public Comment(Connection connection, Article article, int id)
     {
         this(connection);
         mArticle = article;
         mId = id;
     }
 
-    public NewsComment(Connection connection, NewsArticle article, JSONObject object) throws ServerException
+    public Comment(Connection connection, Article article, JSONObject object) throws ServerException, InternalException
     {
         this(connection);
         mArticle = article;
         loadFromJSON(object);
     }
 
-    private JSONObject requestReplies(int page, int pageSize, NewsComment.SortType sortType) throws InternalException, ServerException
+    public Comment(Connection connection, JSONObject object) throws ServerException, InternalException
+    {
+        this(connection);
+
+        mArticle = getArticleFromJSONObject(object);
+        loadFromJSON(object);
+    }
+
+    protected Article getArticleFromJSONObject(JSONObject object)
+    {
+        String aid = null;
+        String oid = null;
+        if (object.getString("gno") != null) {
+            String gno = object.getString("gno");
+            Pattern pattern = Pattern.compile("^news(\\d+),(\\d+)$");
+            Matcher match = pattern.matcher(gno);
+            if (match.matches() && match.groupCount() == 2) {
+                oid = match.group(1);
+                aid = match.group(2);
+            }
+        } else if (object.getString("articleId") != null && object.getString("officeId") != null) {
+            oid = object.getString("officeId");
+            aid = object.getString("articleId");
+        }
+
+        if (aid == null || oid == null) {
+            logger.log(Level.SEVERE, "Failed to find aid or oid in JSONObject.");
+            return null;
+        }
+
+
+        Article article = new Article(mConnection, oid, aid);
+        String title = object.getString("articleTitle");
+
+        if (title != null)
+            article.setTitle(title);
+
+        return article;
+    }
+
+    private JSONObject requestReplies(int page, int pageSize, SortType sortType) throws InternalException, ServerException
     {
         HttpForm form = new HttpForm();
         form.put("commentNo", String.valueOf(mId));
         form.put("gno", mArticle.getGno());
         form.put("pageSize", String.valueOf(pageSize));
         form.put("page", String.valueOf(page));
+        form.put("sort", sortType.toString());
         form.put("serviceId", "news");
 
         JSONObject object = null;
@@ -114,9 +147,9 @@ public class NewsComment
         loadFromJSON(object);
     }
 
-    public List<NewsComment> getComments(int page, int pageSize, NewsComment.SortType sortType) throws InternalException, ServerException
+    public List<Comment> getComments(int page, int pageSize, SortType sortType) throws InternalException, ServerException
     {
-        List<NewsComment> commentList = new ArrayList<NewsComment>();
+        List<Comment> commentList = new ArrayList<Comment>();
         JSONObject object = requestReplies(page, pageSize, sortType);
 
         if (!object.has("commentReplies")) {
@@ -127,27 +160,33 @@ public class NewsComment
         JSONArray commentsJson = object.getJSONArray("commentReplies");
         for (int i = 0; i < commentsJson.length(); ++i) {
             JSONObject commentObject = commentsJson.getJSONObject(i);
-            NewsComment comment = new NewsComment(mConnection, mArticle, commentObject);
+            Comment comment = new Comment(mConnection, mArticle, commentObject);
             commentList.add(comment);
         }
 
         return commentList;
     }
 
-    public static List<NewsComment> getCurrentUserComments(Connection connection, int page, int pageSize, NewsComment.SortType sortType) throws InternalException, ServerException
+    public static List<Comment> getCurrentUserComments(Connection connection, int page, int pageSize, SortType sortType) throws InternalException, ServerException
     {
-        List<NewsComment> comments = new ArrayList<NewsComment>();
+        List<Comment> comments = new ArrayList<Comment>();
 
         return comments;
     }
 
-    private void loadFromJSON(JSONObject jsonObject) throws ServerException
+    private void loadFromJSON(JSONObject jsonObject) throws ServerException, InternalException
     {
-        if (!jsonObject.has("lRegDate"))
+        if (!jsonObject.has("lRegDate") && !jsonObject.has("sRegDate"))
             logger.log(Level.WARNING, "The comment json is missing timestamp.");
         else {
-            long timestamp = jsonObject.getLong("lRegDate");
-            mTimestamp = new DateTime(timestamp);
+            if (jsonObject.has("lRegDate")) {
+                long timestamp = jsonObject.getLong("lRegDate");
+                mTimestamp = new DateTime(timestamp);
+            }
+            else if (jsonObject.has("sRegDate")) {
+                String timeStr = jsonObject.getString("sRegDate");
+                mTimestamp = Time.parse(timeStr).toJodaTime();
+            }
         }
 
         if (!jsonObject.has("content"))
@@ -172,46 +211,29 @@ public class NewsComment
         else
             mIsBest = jsonObject.getBoolean("isBest");
 
-        if (!jsonObject.has("userNickname") || !jsonObject.has("encodedUserId") || !jsonObject.has("snsType"))
+        if (!jsonObject.has("userNickname") && !jsonObject.has("encodedUserId") && !jsonObject.has("userId"))
             logger.log(Level.WARNING, "The comment json is missing user info.");
         else {
-            String username = jsonObject.getString("userNickname");
-            String encoded = jsonObject.getString("encodedUserId");
-            String type = jsonObject.getString("snsType");
-            NewsCommentor.Type tType = null;
-
-            if (type.equals("naver"))
-                tType = NewsCommentor.Type.NAVER;
-            else if (type.equals("twitter"))
-                tType = NewsCommentor.Type.TWITTER;
-            else if (type.equals("facebook"))
-                tType = NewsCommentor.Type.FACEBOOK;
-            else
-                logger.log(Level.WARNING, "SnsType is not recognized.");
-
-            NewsCommentor commentor = new NewsCommentor(username, encoded, tType);
-            mCommentor = commentor;
+            mCommentor = new User(mConnection, jsonObject);
         }
 
-        if (!jsonObject.has("commentReplyNo")) {
-            logger.log(Level.SEVERE, "The comment json is missing commentReplyNo");
+        if (!jsonObject.has("commentReplyNo") && !jsonObject.has("commentNo")) {
+            logger.log(Level.SEVERE, "The comment json is missing comment identifier");
             throw new ServerException("Server returned malformed response.");
-        } else
-            mId = jsonObject.getInt("commentReplyNo");
+        } else {
+            if (jsonObject.has("commentReplyNo"))
+                mId = jsonObject.getInt("commentReplyNo");
+            else if (jsonObject.has("commentNo"))
+                mId = jsonObject.getInt("commentNo");
+            else
+                throw new InternalException();
+        }
 
         if (!jsonObject.has("incomingType"))
             logger.log(Level.WARNING, "The comment json is missing incomingType.");
         else {
             String deviceType = jsonObject.getString("incomingType");
-            DeviceType type = null;
-
-            if (deviceType.equals("pc"))
-                type = DeviceType.PC;
-            else if (deviceType.equals("mobile"))
-                type = DeviceType.MOBILE;
-            else
-                logger.log(Level.WARNING, "incomingType is not recognized: " + deviceType);
-
+            DeviceType type = DeviceType.parse(deviceType);
             mDevice = type;
         }
 
@@ -241,12 +263,12 @@ public class NewsComment
         return mId;
     }
 
-    public NewsArticle getArticle()
+    public Article getArticle()
     {
         return mArticle;
     }
 
-    public NewsCommentor getCommentor()
+    public User getCommentor()
     {
         return mCommentor;
     }
@@ -285,4 +307,5 @@ public class NewsComment
     {
         return mDevice;
     }
+
 }

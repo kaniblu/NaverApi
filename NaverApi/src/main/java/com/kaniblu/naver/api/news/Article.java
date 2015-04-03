@@ -1,5 +1,8 @@
-package com.kaniblu.naver.api;
+package com.kaniblu.naver.api.news;
 
+import com.kaniblu.naver.api.*;
+import com.kaniblu.naver.api.news.comment.Comment;
+import com.kaniblu.naver.api.news.comment.SortType;
 import com.kaniblu.naver.http.HttpForm;
 import com.kaniblu.naver.http.HttpHeaderCollection;
 import com.kaniblu.naver.http.HttpResult;
@@ -7,6 +10,8 @@ import com.kaniblu.naver.http.HttpResult;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
@@ -23,10 +28,10 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class NewsArticle
+public class Article
 {
     private static final DateTimeFormatter DAILYRANK_TIMESTAMP_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
-    private static final Logger logger = Logger.getLogger(NewsArticle.class.getCanonicalName());
+    private static final Logger logger = Logger.getLogger(Article.class.getCanonicalName());
 
     private static final String EXCLUDE_TAG = "table";
     private static final String INCLUDE_TAG = "b,i,a";
@@ -174,19 +179,19 @@ public class NewsArticle
             return null;
     }
 
-    public NewsArticle(Connection connection, String oid, String aid)
+    public Article(Connection connection, String oid, String aid)
     {
         mConnection = connection;
         mOid = oid;
         mAid = aid;
     }
 
-    public NewsArticle()
+    public Article()
     {
 
     }
 
-    public static List<NewsArticle> getDailyRankedNewsList(Connection connection, DateTime date) throws ServerException
+    public static List<Article> getDailyRankedNewsList(Connection connection, DateTime date) throws ServerException
     {
         if (date == null)
             date = DateTime.now();
@@ -211,7 +216,7 @@ public class NewsArticle
 
         rank.addAll(rankOthers);
 
-        List<NewsArticle> rankedNewsList = new LinkedList<NewsArticle>();
+        List<Article> rankedNewsList = new LinkedList<Article>();
 
         Pattern aidPattern = Pattern.compile("aid=([^&]+)");
         Pattern oidPattern = Pattern.compile("oid=([^&]+)");
@@ -267,7 +272,7 @@ public class NewsArticle
             }
 
             if (aid != "" && oid != "") {
-                NewsArticle article = new NewsArticle(connection, oid, aid);
+                Article article = new Article(connection, oid, aid);
                 article.setTitle(title);
                 article.setHasImages(hasImages);
                 article.setPress(press);
@@ -464,7 +469,7 @@ public class NewsArticle
         mLikes = count;
     }
 
-    public NewsComment writeComment(String content) throws ServerException, InternalException
+    public Comment writeComment(String content) throws ServerException, InternalException
     {
         String gno = "news" + mOid + "," + mAid;
 
@@ -502,7 +507,7 @@ public class NewsArticle
             throw new InternalException();
         }
 
-        NewsComment comment = new NewsComment(mConnection, this, array.getJSONObject(0));
+        Comment comment = new Comment(mConnection, this, array.getJSONObject(0));
 
         return comment;
     }
@@ -546,7 +551,7 @@ public class NewsArticle
         requestLikeServer(url, 2003);
     }
 
-    public List<NewsComment> getComments(int page, int pageSize, NewsComment.SortType sortType) throws InternalException, ServerException
+    public List<Comment> getComments(int page, int pageSize, SortType sortType) throws InternalException, ServerException
     {
         String gno = "news" + mOid + "," + mAid;
 
@@ -556,22 +561,7 @@ public class NewsArticle
         formContent.put("pageSize", String.valueOf(pageSize));
         formContent.put("page", String.valueOf(page));
 
-        String sortBy = null;
-
-        switch (sortType) {
-            case SCORE:
-                sortBy = "likability";
-                break;
-            case DATE_ASC:
-                sortBy = "oldest";
-                break;
-            case DATE_DESC:
-                sortBy = "newest";
-                break;
-            case NREPLY_DESC:
-                sortBy = "replyCount";
-                break;
-        }
+        String sortBy = sortType.toString();
 
         formContent.put("sort", sortBy);
 
@@ -584,7 +574,7 @@ public class NewsArticle
             throw new InternalException();
         }
 
-        List<NewsComment> commentList = new ArrayList<NewsComment>();
+        List<Comment> commentList = new ArrayList<Comment>();
 
         if (!object.has("commentReplies")) {
             logger.log(Level.SEVERE, "Unexpected absence of 'message.result.commentReplies'");
@@ -594,7 +584,7 @@ public class NewsArticle
         JSONArray commentsJson = object.getJSONArray("commentReplies");
         for (int i = 0; i < commentsJson.length(); ++i) {
             JSONObject commentObject = commentsJson.getJSONObject(i);
-            NewsComment comment = new NewsComment(mConnection, this, commentObject);
+            Comment comment = new Comment(mConnection, this, commentObject);
             commentList.add(comment);
         }
 
