@@ -329,7 +329,7 @@ public class NewsArticle
 
     public void retrieve() throws ServerException, InternalException
     {
-        HttpResult result = mConnection.requestGet("http://news.naver.com/main/read.nhn?oid=" + mOid + "&aid=" + mAid, null, null);
+        HttpResult result = mConnection.requestGet(getURL(), null, null);
 
         if (result == null || !result.isStatusOk() || !result.hasContent()) {
             logger.log(Level.SEVERE, "Could not contact the server, or the server returned an error.");
@@ -609,5 +609,10 @@ public class NewsArticle
     public String getContent()
     {
         return mContent;
+    }
+
+    public String getURL()
+    {
+        return String.format("http://news.naver.com/main/read.nhn?oid=%s&aid=%s", mOid, mAid);
     }
 }
