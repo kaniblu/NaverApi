@@ -191,13 +191,40 @@ public class Article
 
     }
 
-    public static List<Article> getDailyRankedNewsList(Connection connection, DateTime date) throws ServerException
+    public static List<Article> retrieveWeeklyTopNews(Connection connection, Category category, DateTime date) throws ServerException, InternalException
+    {
+        return retrieveRankedNews(connection, "popularWeek", category, date);
+    }
+
+    public static List<Article> retrieveDailyTopNews(Connection connection, Category category, DateTime date) throws ServerException, InternalException
+    {
+        return retrieveRankedNews(connection, "popularDay", category, date);
+    }
+
+    public static List<Article> retrieveWeeklyMostCommentedNews(Connection connection, Category category, DateTime date) throws ServerException, InternalException
+    {
+        return retrieveRankedNews(connection, "memoWeek", category, date);
+    }
+
+    protected static String toUrlDateString(DateTime date)
+    {
+        return String.format("%04d%02d%02d", date.getYear(), date.getMonthOfYear(), date.getDayOfMonth());
+    }
+
+    protected static List<Article> retrieveRankedNews(Connection connection, String page, Category category, DateTime date) throws ServerException, InternalException
     {
         if (date == null)
             date = DateTime.now();
 
-        String dateString = String.format("%04d%02d%02d", date.getYear(), date.getMonthOfYear(), date.getDayOfMonth());
-        HttpResult result = connection.requestGet("http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date=" + dateString, null, null);
+        if (category == null)
+            category = Category.ALL;
+
+        if (page == null)
+            page = "popularDay";
+
+        String url = String.format("http://news.naver.com/main/ranking/%s.nhn?sectionId=%s&date=%s", page, category.toString(), toUrlDateString(date));
+
+        HttpResult result = connection.requestGet(url, null, null);
 
         if (result == null || !result.isStatusOk() || !result.hasContent()) {
             logger.log(Level.SEVERE, "Could not contact the server, or the server returned an error.");
@@ -233,9 +260,9 @@ public class Article
                 continue;
             }
 
-            Elements imgIcons = e.select("img[alt=포토]");
+            Elements imgIcons = e.select("img");
 
-            if (imgIcons.size() > 0)
+            if (imgIcons.size() > 0 && imgIcons.get(0).attr("title").equals("\ud3ec\ud1a0"))
                 hasImages = true;
 
             Elements iconSpans = e.select("span[class=ico]");

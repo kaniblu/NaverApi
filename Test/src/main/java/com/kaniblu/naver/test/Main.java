@@ -3,14 +3,13 @@ package com.kaniblu.naver.test;
 import com.kaniblu.naver.api.*;
 
 import com.kaniblu.naver.api.news.Article;
+import com.kaniblu.naver.api.news.Category;
 import com.kaniblu.naver.api.news.comment.Comment;
 import com.kaniblu.naver.api.news.comment.SortType;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.json.JSONObject;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.logging.LogManager;
 
@@ -149,23 +148,42 @@ public class Main
 
                             return true;
                         case 3:
-                            console.writeln("What date(YYYYMMDD) do you want to get?");
+                        case 8:
+                        case 9:
+                            for (Category c : Category.values())
+                                console.writeln(String.format("%s(%s)", c.name(), c.toString()));
 
+                            console.write("Choose a category (e.g. 000): ");
+                            Category category = Category.parse(console.read());
+                            console.write("Choose a date (yyyyMMdd): ");
                             String date = console.read();
 
                             if (!date.matches("\\d{4}\\d{2}\\d{2}")) {
                                 console.writeln("Wrong date format");
-                                break;
+                                return true;
                             }
 
                             DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyyMMdd");
                             DateTime dateTime = formatter.parseDateTime(date);
 
-                            List<Article> newsList = Article.getDailyRankedNewsList(new Connection(), dateTime);
+                            List<Article> newsList = null;
+
+                            switch (id) {
+                                case 3:
+                                    newsList = Article.retrieveDailyTopNews(connection, category, dateTime);
+                                    break;
+                                case 8:
+                                    newsList = Article.retrieveWeeklyTopNews(connection, category, dateTime);
+                                    break;
+                                case 9:
+                                    newsList = Article.retrieveWeeklyMostCommentedNews(connection, category, dateTime);
+                                    break;
+                            }
+
                             console.writeln(newsList.size() + " ranked news retrieved");
 
                             for (Article a : newsList) {
-                                console.writeln(a.getGno() + " / " + a.getTitle());
+                                console.writeln(String.format("%s / %s / %s", a.getGno(), a.hasImages() ? "[P]" : "[ ]", a.getTitle()));
                             }
 
                             return true;
@@ -222,7 +240,6 @@ public class Main
                     console.writeln("An exception occurred.");
                     return true;
                 }
-                return true;
             }
         };
 
@@ -232,6 +249,8 @@ public class Main
         topLevel.addMenu(1, "Read an article.", topLevelListener);
         topLevel.addMenu(2, "Read a comment.", topLevelListener);
         topLevel.addMenu(3, "Retrieve daily popular news.", topLevelListener);
+        topLevel.addMenu(8, "Retrieve weekly popular news.", topLevelListener);
+        topLevel.addMenu(9, "Retrieve weekly most commented news.", topLevelListener);
         topLevel.addMenu(4, "Check user status.", topLevelListener);
         topLevel.addMenu(7, "Get all comments posted by the user.", topLevelListener);
         topLevel.run();
