@@ -17,6 +17,17 @@ public enum SortType
         mString = str;
     }
 
+    public static SortType parse(String value)
+    {
+        String v = value.toLowerCase().trim();
+
+        for (SortType s : values())
+            if (s.equals(v))
+                return s;
+
+        return null;
+    }
+
     @Override
     public String toString()
     {
