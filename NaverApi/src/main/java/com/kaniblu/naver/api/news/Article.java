@@ -485,6 +485,11 @@ public class Article
             return;
         }
 
+        if (!result.has("likeItContent")) {
+            logger.log(Level.SEVERE, "Json object doesn't contain 'likeItContent'.");
+            throw new ServerException();
+        }
+
         JSONObject likeItContent = result.getJSONObject("likeItContent");
 
         if (likeItContent == null) {
