@@ -1,8 +1,5 @@
 package com.kaniblu.naver.api.news.comment;
 
-/**
-* Created by Kani on 4/3/2015.
-*/
 public enum SortType
 {
     SCORE("likability"),
@@ -22,7 +19,7 @@ public enum SortType
         String v = value.toLowerCase().trim();
 
         for (SortType s : values())
-            if (s.equals(v))
+            if (s.mString.equals(v))
                 return s;
 
         return null;
