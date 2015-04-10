@@ -73,7 +73,7 @@ public class Main
                                                 comments = article.getComments(0, 9999, SortType.SCORE);
 
                                                 for (Comment comment : comments)
-                                                    console.writeln("(" + comment.getNUp() + "/" + comment.getNDown() + ")" + comment.getContent());
+                                                    console.writeln(String.format("[%s] (%d/%d) %s", comment.getCommentor().getUsername(), comment.getNUp(), comment.getNDown(), comment.getContent()));
 
                                                 return true;
                                             case 3:

@@ -6,6 +6,7 @@ import com.kaniblu.naver.http.HttpClient;
 import com.kaniblu.naver.http.HttpForm;
 import com.kaniblu.naver.http.HttpHeaderCollection;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class User
     public User(Connection connection, JSONObject object)
     {
         mConnection = connection;
+        loadFromJSON(object);
     }
 
     public boolean isLoggedIn()
@@ -126,24 +128,35 @@ public class User
 
     public void loadFromJSON(JSONObject object)
     {
-        mEncodedUsername = object.getString("encodedUserId");
-        mUsername = object.getString("userId");
-        mNickname = object.getString("userNickname");
+        try {
+            if (object.has("encodedUserId"))
+                mEncodedUsername = object.getString("encodedUserId");
 
-        if (object.has("isRealname"))
-            mNameReal = object.getBoolean("isRealname");
+            if (object.has("userId"))
+                mUsername = object.getString("userId");
+            else if (object.has("maskUserId"))
+                mUsername = object.getString("maskUserId");
 
-        if (object.has("isWritable"))
-            mCommentWritable = object.getBoolean("isWritable");
+            if (object.has("userNickname"))
+                mNickname = object.getString("userNickname");
 
-        if (object.has("maskUserId"))
-            mUsername = object.getString("maskUserId");
+            if (object.has("isRealname"))
+                mNameReal = object.getBoolean("isRealname");
 
-        if (object.has("snsType") && object.getString("snsType").length() > 0)
-            mType = UserType.parse(object.getString("snsType"));
+            if (object.has("isWritable"))
+                mCommentWritable = object.getBoolean("isWritable");
 
-        if (object.has("isLogin"))
-            mLoggedIn = object.getBoolean("isLogin");
+            if (object.has("maskUserId"))
+                mUsername = object.getString("maskUserId");
+
+            if (object.has("snsType") && object.getString("snsType").length() > 0)
+                mType = UserType.parse(object.getString("snsType"));
+
+            if (object.has("isLogin"))
+                mLoggedIn = object.getBoolean("isLogin");
+        } catch (JSONException e) {
+            logger.log(Level.SEVERE, "Unknown json error.", e);
+        }
     }
 
     public void retrieve() throws InternalException, ServerException
