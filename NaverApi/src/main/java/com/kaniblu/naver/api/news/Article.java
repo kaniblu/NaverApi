@@ -13,11 +13,8 @@ import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
-import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Node;
-import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
 import java.net.MalformedURLException;
@@ -32,13 +29,6 @@ public class Article
 {
     private static final DateTimeFormatter DAILYRANK_TIMESTAMP_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
     private static final Logger logger = Logger.getLogger(Article.class.getCanonicalName());
-
-    private static final String EXCLUDE_TAG = "table";
-    private static final String INCLUDE_TAG = "b,i,a";
-    private static final String LINE_SPLIT_TAG = "p,hr,br";
-    private Set<String> excludeTag;
-    private Set<String> includeTag;
-    private Set<String> lineSplitTag;
 
     public void setConnection(Connection connection)
     {
@@ -55,11 +45,6 @@ public class Article
         mAid = aid;
     }
 
-    public List<URL> getImageURLs()
-    {
-        return mImageURLs;
-    }
-
     public boolean hasImages()
     {
         return mHasImages;
@@ -71,7 +56,6 @@ public class Article
     }
 
     protected boolean mHasImages = false;
-    protected List<URL> mImageURLs = new ArrayList<URL>();
     protected List<String> mHighlights = new ArrayList<String>();
 
     public List<String> getHighlights()
@@ -79,11 +63,10 @@ public class Article
         return mHighlights;
     }
 
-    protected Map<URL, String> mImageCaptions = new HashMap<URL, String>();
     protected Connection mConnection;
     protected String mOid;
     protected String mAid;
-    protected String mContent;
+    protected ContentElements mContent;
     protected DateTime mTimestamp;
     protected int mCommentSize;
     protected String mTitle;
@@ -136,11 +119,6 @@ public class Article
         mTimestamp = timestamp;
     }
 
-    public void setContent(String content)
-    {
-        mContent = content;
-    }
-
     public String getTitle()
     {
         return mTitle;
@@ -169,14 +147,6 @@ public class Article
     public int getCommentSize()
     {
         return mCommentSize;
-    }
-
-    public String getImageCaption(URL url)
-    {
-        if (mImageCaptions.containsKey(url))
-            return mImageCaptions.get(url);
-        else
-            return null;
     }
 
     public Article(Connection connection, String oid, String aid)
@@ -314,51 +284,6 @@ public class Article
         return rankedNewsList;
     }
 
-    public void makeHtmlTree(List<String> tree, List<Node> nodes) {
-        if(excludeTag == null) {
-            excludeTag = new HashSet<String>();
-            for(String s : EXCLUDE_TAG.split(",")) {
-                excludeTag.add(s);
-            }
-        }
-
-        if(includeTag == null) {
-            includeTag = new HashSet<String>();
-            for(String s : INCLUDE_TAG.split(",")) {
-                includeTag.add(s);
-            }
-        }
-
-        if(lineSplitTag == null) {
-            lineSplitTag = new HashSet<String>();
-            for (String s : LINE_SPLIT_TAG.split(",")) {
-                lineSplitTag.add(s);
-            }
-        }
-
-        for(Node node : nodes) {
-            if(node instanceof Element) {
-                Element e = (Element) node;
-
-                if(!excludeTag.contains(e.tagName())) {
-                    if(lineSplitTag.contains(e.tagName())) {
-                        tree.add("\n");
-                        makeHtmlTree(tree, e.childNodes());
-                    } else if(includeTag.contains(e.tagName())) {
-                        tree.add("<" + e.tagName() + ">");
-                        makeHtmlTree(tree, e.childNodes());
-                        tree.add("</" + e.tagName() + ">");
-                    } else {
-                        makeHtmlTree(tree, e.childNodes());
-                    }
-                }
-            } else if(node instanceof TextNode) {
-                TextNode t = (TextNode) node;
-                tree.add(t.getWholeText().replaceAll("[\t\r]", ""));
-            }
-        }
-    }
-
     public void retrieve() throws ServerException, InternalException
     {
         HttpResult result = mConnection.requestGet(getURL(), null, null);
@@ -376,62 +301,14 @@ public class Article
             throw new ServerException();
         }
 
-        List<String> tree = new ArrayList<String>();
-        makeHtmlTree(tree, divs.get(0).childNodes());
-        mContent = StringUtil.join(tree, "");
-        mContent = mContent.trim();
-        mContent = mContent.replace("\u00a0", "\n");
-        mContent = mContent.replaceAll("\n{3,}", "\n\n");
-        mContent = mContent.replaceAll("\n[ ]+", "\n");
+        Element articleBodyContent = divs.get(0);
+        mContent = ContentElements.parseElement(articleBodyContent);
 
-        String[] strings = mContent.split("\n");
-        for(int i = 0; i < strings.length; i++) {
-            String s = strings[i].trim();
-
-            if(s.equals("")) {
-                continue;
-            }
-
-            if(s.charAt(s.length() - 1) != '.' && s.charAt(s.length() - 1) != ']') {
-                mHighlights.add(s);
-                strings[i] = "";
-            } else {
+        for (ContentElement e : mContent)
+            if (e instanceof Image) {
+                mHasImages = true;
                 break;
             }
-        }
-
-        mContent = StringUtil.join(Arrays.asList(strings), "\n");
-        mContent = mContent.trim();
-
-        Elements imageTags = divs.select("img");
-
-        for (Element element : imageTags) {
-            if (!element.hasAttr("src"))
-                continue;
-
-            String caption = null;
-
-            Element table = element;
-
-            while (table != null && !table.tagName().equals("table"))
-                table = table.parent();
-
-            if (table == null)
-                logger.info("No image caption exists.");
-            else
-                caption = table.text().trim();
-
-            try {
-                URL imageURL = new URL(element.attr("src"));
-
-                if (caption != null)
-                    mImageCaptions.put(imageURL, caption);
-
-                mImageURLs.add(imageURL);
-            } catch (MalformedURLException e) {
-                logger.warning("Malformed url in img src.");
-            }
-        }
 
         divs = doc.select("h3[id=articleTitle]");
 
@@ -628,9 +505,14 @@ public class Article
         return "news" + mOid + "," + mAid;
     }
 
-    public String getContent()
+    public ContentElements getContentElements()
     {
         return mContent;
+    }
+
+    public String getContent()
+    {
+        return mContent.toString();
     }
 
     public String getURL()
