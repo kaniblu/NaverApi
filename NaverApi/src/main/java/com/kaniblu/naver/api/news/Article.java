@@ -6,11 +6,13 @@ import com.kaniblu.naver.api.news.comment.SortType;
 import com.kaniblu.naver.http.HttpForm;
 import com.kaniblu.naver.http.HttpHeaderCollection;
 import com.kaniblu.naver.http.HttpResult;
+import com.sun.corba.se.spi.activation.Server;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -73,6 +75,7 @@ public class Article
     protected String mPress;
     protected String mCategory;
     protected int mLikes;
+    protected boolean mLiked;
 
     public int getLikes()
     {
@@ -351,15 +354,21 @@ public class Article
         mCommentSize = Integer.parseInt(replyCounts.get(0).text());
     }
 
-    public void retrieveLikeCount() throws ServerException, InternalException
+    public boolean isLiked()
+    {
+        return mLiked;
+    }
+
+    public void retrieveLikeStatus() throws ServerException, InternalException
     {
         String url = String.format("http://news.like.naver.com/likeIt/likeItContent.jsonp?serviceId=NEWS&displayId=NEWS&contentsId=ne_%s_%s&viewType=recommend", mOid, mAid);
-        JSONObject result = null;
-        try {
-            result = mConnection.requestJsonGet(url, null);
-        } catch (JSONErrorException e) {
-            logger.log(Level.SEVERE, "Json error detected during like count retrieval", e);
-            return;
+        JSONObject result = requestLikeServer(url);
+
+        if (result.has("likeItContentsYn")) {
+            mLiked = result.getString("likeItContentsYn").equals("Y");
+        } else {
+            mLiked = false;
+            logger.log(Level.WARNING, "Json object doesn't indicate whether user liked the content or not.");
         }
 
         if (!result.has("likeItContent") || result.get("likeItContent") == null) {
@@ -421,18 +430,36 @@ public class Article
         return comment;
     }
 
-    protected void requestLikeServer(String url, int expectedStatusCode) throws InternalException, ServerException
+    protected JSONObject requestLikeServer(String url) throws InternalException, ServerException
     {
-        JSONObject result = null;
+        HttpResult result = mConnection.requestGet(url, null, null);
+        JSONObject object = null;
 
         try {
-            result = mConnection.requestJsonGet(url, null);
-        } catch (JSONErrorException e) {
+            String content = result.getContentAsString();
+            content = content.replaceAll("[^(]+\\((.*)\\);$", "$1");
+            object = new JSONObject(content);
+
+            if (!object.has("code") || object.getInt("code") != 0 || !object.has("result")) {
+                logger.log(Level.SEVERE, "Unexpected json format.");
+                throw new ServerException();
+            }
+
+            object = object.getJSONObject("result");
+        } catch (JSONException e) {
             logger.log(Level.SEVERE, "unexpected json error", e);
-            return;
+            throw new ServerException();
         }
 
-        if (result.has("resultStatusCode") && result.getInt("resultStatusCode") == expectedStatusCode) {
+        return object;
+    }
+
+    protected void likeOrUnlike(boolean shareTimeline, boolean like) throws InternalException, ServerException
+    {
+        String url = String.format("http://news.like.naver.com/likeIt/v1/%s.jsonp?serviceId=NEWS&contentsId=ne_%s_%s&lang=ko&timeLineShare=%s", like ? "likeItContentAdd" : "unLikeItContent", mOid, mAid, shareTimeline ? "Y" : "N");
+        JSONObject result = requestLikeServer(url);
+
+        if (result.has("resultStatusCode") && result.getInt("resultStatusCode") == (like ? 0 : 2003)) {
             if (result.has("likeItCount"))
                 mLikes = result.getInt("likeItCount");
             else if (result.has("contents")) {
@@ -442,22 +469,22 @@ public class Article
             }
 
             logger.log(Level.INFO, "like connection success.");
-        }
-        else {
+
+            mLiked = like;
+        } else {
             logger.log(Level.WARNING, "like connection failed.");
             throw new ServerException();
         }
     }
+
     public void like(boolean shareTimeline) throws InternalException, ServerException
     {
-        String url = String.format("http://news.like.naver.com/likeIt/v1/likeItContentAdd.jsonp?serviceId=NEWS&contentsId=ne_%s_%s&lang=ko&timeLineShare=%s", mOid, mAid, shareTimeline ? "Y" : "N");
-        requestLikeServer(url, 0);
+        likeOrUnlike(shareTimeline, true);
     }
 
     public void cancelLike(boolean shareTimeline) throws InternalException, ServerException
     {
-        String url = String.format("http://news.like.naver.com/likeIt/v1/unLikeItContent.jsonp?serviceId=NEWS&contentsId=ne_%s_%s&lang=ko&timeLineShare=%s", mOid, mAid, shareTimeline ? "Y" : "N");
-        requestLikeServer(url, 2003);
+        likeOrUnlike(shareTimeline, false);
     }
 
     public List<Comment> getComments(int page, int pageSize, SortType sortType) throws InternalException, ServerException
@@ -508,6 +535,19 @@ public class Article
     public ContentElements getContentElements()
     {
         return mContent;
+    }
+
+    //Returns the representative Image object for the article.
+    //Current implementation returns the index-0 Image if there is any.
+    //However, it might be ideal if the method could discrimnate images
+    //using more complicated algorithms.
+    public Image getTopImage()
+    {
+        for (ContentElement ce : mContent)
+            if (ce instanceof Image)
+                return (Image) ce;
+
+        return null;
     }
 
     public String getContent()

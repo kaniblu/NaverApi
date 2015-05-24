@@ -77,8 +77,9 @@ public class Main
 
                                                 return true;
                                             case 3:
-                                                article.retrieveLikeCount();
+                                                article.retrieveLikeStatus();
                                                 console.writeln("There are " + article.getLikes() + " likes.");
+                                                console.writeln(String.format("User has %sliked the article.", article.isLiked() ? "" : "not "));
                                                 return true;
                                             case 4:
                                                 article.like(false);
@@ -102,7 +103,7 @@ public class Main
                             articleConsole.setHeaderTitle("What to do with the article?");
                             articleConsole.addMenu(1, "Write a comment.", articleMenuListener);
                             articleConsole.addMenu(2, "Get all comments.", articleMenuListener);
-                            articleConsole.addMenu(3, "Get like count.", articleMenuListener);
+                            articleConsole.addMenu(3, "Get like status.", articleMenuListener);
                             articleConsole.addMenu(4, "Like the article.", articleMenuListener);
                             articleConsole.addMenu(5, "Unlike the article.", articleMenuListener);
                             articleConsole.run();

@@ -23,6 +23,7 @@ public class ContentElements extends ArrayList<ContentElement>
     private static final Map<String, Class<?>> TAG_ELEMENT_MAP = new HashMap<String, Class<?>>()
     {
         {
+            put("span.end_photo_org", Image.class);
             put("table", Image.class);
             put("img", Image.class);
             put("strong", Heading.class);
@@ -67,9 +68,9 @@ public class ContentElements extends ArrayList<ContentElement>
 
     public static ContentElements parseElement(Element element)
     {
-        String html = element.html();
+        /*String html = element.html();
 
-        for (String tag : IGNORED_TAGS) {
+        /*for (String tag : IGNORED_TAGS) {
             Pattern pattern = getIgnorePattern(tag);
             while (true) {
                 Matcher matcher = pattern.matcher(html);
@@ -80,7 +81,7 @@ public class ContentElements extends ArrayList<ContentElement>
             }
         }
 
-        element.html(html);
+        element.html(html);*/
         ContentElements elements = new ContentElements();
         for(Node node : element.childNodes()) {
             if(node instanceof Element) {
@@ -88,8 +89,18 @@ public class ContentElements extends ArrayList<ContentElement>
 
                 String tag = e.tagName();
                 String css = ElementUtils.cssSelector(e);
-                if (TAG_ELEMENT_MAP.containsKey(tag)) {
-                    Class<?> c = TAG_ELEMENT_MAP.get(tag);
+                if (IGNORED_TAGS.contains(css)) {
+                    ContentElements subElements = parseElement(e);
+                    String str = subElements.toString();
+                    if (elements.size() > 0 && elements.get(elements.size() - 1) instanceof Paragraph) {
+                        Paragraph paragraph = (Paragraph)elements.get(elements.size() - 1);
+                        paragraph.setText(paragraph.getText() + str);
+                    } else {
+                        Paragraph paragraph = new Paragraph(str);
+                        elements.add(paragraph);
+                    }
+                } else if (TAG_ELEMENT_MAP.containsKey(css)) {
+                    Class<?> c = TAG_ELEMENT_MAP.get(css);
                     ContentElement contentElement = null;
                     try {
                         contentElement = (ContentElement) c.newInstance();

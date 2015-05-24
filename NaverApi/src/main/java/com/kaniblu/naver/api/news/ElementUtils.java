@@ -17,9 +17,9 @@ public class ElementUtils
             return null;
 
         String token = tokens[tokens.length - 1];
-        if (tokens == null || token.trim().length() <= 0)
+        if (token == null || token.trim().length() <= 0)
             return null;
 
-        return token;
+        return token.trim();
     }
 }

@@ -317,13 +317,8 @@ public class Connection
         try {
             object = new JSONObject(jsonContent);
         } catch (JSONException e2) {
-            jsonContent = jsonContent.replaceAll("^[a-zA-Z\\.0-9]+\\((.*)\\);$", "$1");
-            try {
-                object = new JSONObject(jsonContent);
-            } catch (JSONException e) {
-                logger.log(Level.SEVERE, "Failed to parse json content.");
-                throw new InternalException();
-            }
+            logger.log(Level.SEVERE, "Failed to parse json content.");
+            throw new InternalException();
         }
 
         if (!object.has("message")) {

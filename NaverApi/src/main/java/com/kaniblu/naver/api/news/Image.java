@@ -7,6 +7,8 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,7 +17,7 @@ public class Image extends ContentElement
 {
     private static final Logger logger = Logger.getLogger(Image.class.getCanonicalName());
 
-    protected String mUrl;
+    protected URL mUrl;
     protected String mTitle;
     protected String mCaption;
 
@@ -26,7 +28,12 @@ public class Image extends ContentElement
 
     public Image(String url, String title, String caption)
     {
-        mUrl = url;
+        try {
+            mUrl = new URL(url);
+        } catch (MalformedURLException e) {
+            mUrl = null;
+        }
+
         mTitle = title;
         mCaption = caption;
     }
@@ -82,23 +89,48 @@ public class Image extends ContentElement
                 }
 
             mCaption = captionElements.toString();
+        } else if (rootTag.equals("span")) {
+            Elements imgElements = root.select("img");
+
+            if (imgElements.size() != 1) {
+                logger.log(Level.WARNING, "span element does not contain exactly one img tag.");
+                throw new InternalException();
+            }
+
+            imageElement = imgElements.get(0);
+            Elements emElements = root.select("em.img_desc");
+
+            if (emElements.size() > 0) {
+                Element emElement = emElements.get(0);
+                ContentElements parsed = ContentElements.parseElement(emElement);
+                mCaption = parsed.toString();
+            }
         } else if (rootTag.equals("img"))
             imageElement = root;
 
         if (!imageElement.hasAttr("src"))
             logger.log(Level.WARNING, "img tag doesn't contain src.");
 
-        mUrl = imageElement.attr("src");
+        String urlString = imageElement.attr("src");
+        try {
+            mUrl = new URL(urlString);
+        } catch (MalformedURLException e) {
+            mUrl = null;
+        }
     }
 
-    public String getUrl()
+    public URL getUrl()
     {
         return mUrl;
     }
 
     public void setUrl(String url)
     {
-        mUrl = url;
+        try {
+            mUrl = new URL(url);
+        } catch (MalformedURLException e) {
+            mUrl = null;
+        }
     }
 
     public String getCaption()
